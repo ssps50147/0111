@@ -24,7 +24,7 @@
       justify-content:center;
     }
     .wrap{
-      width:min(560px, 100%);
+      width:min(580px, 100%);
       padding: calc(12px + var(--safeT)) 12px calc(12px + var(--safeB));
       box-sizing:border-box;
     }
@@ -49,7 +49,7 @@
       border-radius:14px;
       background:#111;
       color:#fff;
-      font-weight:800;
+      font-weight:900;
       cursor:pointer;
       box-shadow: 0 8px 16px rgba(0,0,0,.12);
       user-select:none;
@@ -75,7 +75,7 @@
 
     .row{display:flex; gap:12px; margin-top:12px; align-items:stretch; flex-wrap:wrap;}
     .panel{
-      flex:1 1 250px;
+      flex:1 1 260px;
       padding:12px;
       border-radius:16px;
       background: var(--card);
@@ -179,7 +179,7 @@
       z-index:50;
     }
     .modal{
-      width:min(560px, 100%);
+      width:min(580px, 100%);
       border-radius:18px;
       background:#fff;
       padding:14px;
@@ -236,7 +236,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      max-width: 260px;
+      max-width: 280px;
     }
     .rankScore{font-weight:900;}
   </style>
@@ -247,7 +247,10 @@
   <div class="topbar">
     <div class="title">
       <b>阿鹿鹿文創-貪食鹿(吃鹿粉)</b>
-      <small>玩家：<span id="playerName">Guest</span>　｜　倍率：<span id="mult">x1</span></small>
+      <small>
+        玩家：<span id="playerName">Guest</span>　｜　倍率：<span id="mult">x1</span>
+        <span id="x2Tag" class="tag" style="display:none; margin-left:8px;">x2 加成中</span>
+      </small>
     </div>
     <div class="pill">
       <span class="tag">分數 <span id="score">0</span></span>
@@ -263,11 +266,11 @@
       <div class="kv">
         <div>速度</div><div class="v" id="spd">正常</div>
         <div>連吃</div><div class="v" id="streak">0</div>
-        <div>下一隻</div><div class="v" id="nextItem">—</div>
+        <div>場上物件</div><div class="v" id="liveItems">0/1</div>
         <div>身體長度</div><div class="v" id="len">1</div>
       </div>
       <div class="hint">
-        加分項目才算連吃；吃到地雷「生氣鹿鹿」會中斷連吃並重置速度。<br/>
+        加分項目才算連吃；吃到地雷會中斷連吃並重置速度。<br/>
         超過 3 秒沒吃到加分項目，連吃會開始緩慢下降（每 tick 約 -0.35）。
       </div>
     </div>
@@ -289,13 +292,13 @@
 
       <div class="hint">
         排行榜使用 LocalStorage（免後端）。<br/>
-        小提醒：LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。
+        LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。
       </div>
     </div>
   </div>
 
   <div class="gamebox">
-    <canvas id="cv" width="480" height="480"></canvas>
+    <canvas id="cv" width="486" height="486"></canvas>
 
     <div class="controls">
       <div class="pad" id="left">⬅️</div>
@@ -306,7 +309,7 @@
   </div>
 
   <div class="footer">
-    食物/彩蛋/地雷會隨機生成在地圖上，吃到會依規則加減分與增減身體。<br/>
+    物件「過期」不消失，會改成「換位置/換角色」維持活動感。<br/>
     結束加成：每多一格身體 +1 分（以初始長度 1 為基準）。
   </div>
 </div>
@@ -346,34 +349,43 @@
 <script>
 (() => {
   /***********************
-   * 1) 圖片網址（你提供）
+   * 圖片網址（你提供）
    ***********************/
   const URLS = {
-    HEAD: "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true", // 蛇頭：鹿鹿
-    ASHUI: "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true", // 阿水
-    DAD: "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",   // 鹿爸
-    MOM: "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",   // 花媽（彩蛋）
-    ANGRY: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true", // 生氣鹿鹿（地雷）
+    HEAD:  "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
+    ASHUI: "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
+    DAD:   "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
+    MOM:   "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
+    ANGRY: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true",
   };
-
   const LULU_POOL = [URLS.HEAD, URLS.DAD, URLS.MOM, URLS.ASHUI, URLS.ANGRY];
-
-  function pickRandomAva(){ return LULU_POOL[Math.floor(Math.random()*LULU_POOL.length)]; }
+  const pickRandomAva = () => LULU_POOL[Math.floor(Math.random()*LULU_POOL.length)];
 
   /***********************
-   * 2) 基礎設定 / UI
+   * 你指定：GRID / SCALE
    ***********************/
-  const STORAGE_KEY = "aruru_snake_board_v2";
-  const BEST_KEY = "aruru_snake_best_v2";
-  const NAME_KEY = "aruru_snake_name_v2";
-  const AUDIO_KEY = "aruru_snake_audio_v2";
+  const GRID = 18;
+  const TARGET_SCALE = 1.25;
+  const HEAD_SCALE = 1.25;
 
+  /***********************
+   * 儲存 key
+   ***********************/
+  const STORAGE_KEY = "aruru_snake_board_v4";
+  const BEST_KEY = "aruru_snake_best_v4";
+  const NAME_KEY = "aruru_snake_name_v4";
+  const AUDIO_KEY = "aruru_snake_audio_v4";
+
+  /***********************
+   * Canvas
+   ***********************/
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
-
-  const GRID = 24;
   const CELL = cv.width / GRID;
 
+  /***********************
+   * UI
+   ***********************/
   const $playerName = document.getElementById("playerName");
   const $nameInput = document.getElementById("nameInput");
   const $score = document.getElementById("score");
@@ -381,8 +393,9 @@
   const $spd = document.getElementById("spd");
   const $streak = document.getElementById("streak");
   const $mult = document.getElementById("mult");
-  const $nextItem = document.getElementById("nextItem");
   const $len = document.getElementById("len");
+  const $liveItems = document.getElementById("liveItems");
+  const $x2Tag = document.getElementById("x2Tag");
 
   // Modal
   const mask = document.getElementById("mask");
@@ -397,6 +410,10 @@
   const btnGo = document.getElementById("btnGo");
   const btnAgain = document.getElementById("btnAgain");
   const btnClearRank = document.getElementById("btnClearRank");
+
+  const fmt = (n) => (Number(n)||0).toFixed(2).replace(/\.?0+$/,"");
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const randRange = (a,b)=>Math.floor(a + Math.random()*(b-a+1));
 
   function openModal({title, sub="", text="", score=0, showRank=false, showGo=false, showAgain=false, showClear=false, rankData=null, avaUrl=null}) {
     modalTitle.textContent = title;
@@ -414,12 +431,11 @@
 
     mask.style.display = "flex";
   }
-  function closeModal(){ mask.style.display = "none"; }
-
+  const closeModal = ()=> mask.style.display = "none";
   btnClose.addEventListener("click", closeModal);
 
   /***********************
-   * 3) 圖片預載（避免白塊）
+   * 圖片預載
    ***********************/
   const SPR = {};
   function loadImg(url){
@@ -431,16 +447,13 @@
       img.src = url;
     });
   }
-
   async function preload() {
-    const entries = Object.entries(URLS);
-    for (const [k, url] of entries) SPR[k] = await loadImg(url);
-    // pool
-    for (const url of LULU_POOL) { /* warm cache */ await loadImg(url); }
+    for (const [k, url] of Object.entries(URLS)) SPR[k] = await loadImg(url);
+    for (const url of LULU_POOL) await loadImg(url);
   }
 
   /***********************
-   * 4) 玩家暱稱
+   * 玩家暱稱（無 LIFF）
    ***********************/
   let playerName = localStorage.getItem(NAME_KEY) || "Guest";
   $playerName.textContent = playerName;
@@ -455,7 +468,7 @@
   });
 
   /***********************
-   * 5) 聲音：BGM / SFX + 音量
+   * 聲音：BGM/SFX + 音量
    ***********************/
   const $bgmOn = document.getElementById("bgmOn");
   const $sfxOn = document.getElementById("sfxOn");
@@ -503,10 +516,10 @@
 
   function applyVolumes(){
     if (!bgmGain || !sfxGain) return;
-    const bgm = Number($bgmVol.value) / 100; // 0..1
+    const bgm = Number($bgmVol.value) / 100;
     const sfx = Number($sfxVol.value) / 100;
-    bgmGain.gain.value = Math.max(0, Math.min(1, bgm)) * 0.28;
-    sfxGain.gain.value = Math.max(0, Math.min(1, sfx)) * 0.9;
+    bgmGain.gain.value = clamp(bgm,0,1) * 0.28;
+    sfxGain.gain.value = clamp(sfx,0,1) * 0.9;
   }
 
   $bgmOn.addEventListener("change", () => { saveAudioPrefs(); if ($bgmOn.checked) startBGM(); else stopBGM(); });
@@ -536,12 +549,11 @@
     ensureAudio();
     stopBGM();
 
-    // Q版輕音和弦分解（不吵）
     const seq = [
-      [392, 494, 587], // G
-      [440, 554, 659], // A
-      [349, 440, 523], // F
-      [392, 494, 587], // G
+      [392, 494, 587],
+      [440, 554, 659],
+      [349, 440, 523],
+      [392, 494, 587],
     ];
     let step = 0;
 
@@ -569,7 +581,6 @@
   }
   function stopBGM(){ if (bgmTimer) clearInterval(bgmTimer); bgmTimer = null; }
 
-  // iOS/LINE：第一次互動後解鎖音訊
   function unlockAudio() {
     ensureAudio();
     if (audioCtx.state === "suspended") audioCtx.resume();
@@ -583,14 +594,10 @@
   window.addEventListener("keydown", unlockAudio, {once:false});
 
   /***********************
-   * 6) 排行榜（LocalStorage）+ 隨機鹿鹿圖
+   * 排行榜（LocalStorage）+ 隨機鹿鹿圖
    ***********************/
-  function loadBoard(){
-    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-  }
-  function saveBoard(list){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
+  function loadBoard(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
+  function saveBoard(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
   function addScoreToBoard(entry){
     const list = loadBoard();
     list.push(entry);
@@ -608,13 +615,16 @@
       const li = document.createElement("li");
       const left = document.createElement("div");
       left.className = "rankLeft";
+
       const ava = document.createElement("img");
       ava.className = "rankAva";
       ava.src = r.avaUrl || pickRandomAva();
       ava.alt = "鹿鹿";
+
       const name = document.createElement("div");
       name.className = "rankName";
       name.textContent = `${i+1}. ${r.name || "玩家"}`;
+
       left.appendChild(ava);
       left.appendChild(name);
 
@@ -647,15 +657,14 @@
   });
 
   /***********************
-   * 7) 遊戲物件與規則（你指定）
+   * 物件定義（你指定）
    ***********************/
   const ITEM_DEFS = [
-    { key:"ASHUI", name:"阿水",   prob:0.35, score:+1,   grow:+1,   isPositive:true },
-    { key:"DAD",   name:"鹿爸",   prob:0.25, score:+1.5, grow:+1.5, isPositive:true },
-    { key:"MOM",   name:"花媽",   prob:0.20, score:+3,   grow:+2,   isPositive:true, isEgg:true },
-    { key:"ANGRY", name:"生氣鹿鹿",prob:0.20, score:-3,  shrink:2,  isPositive:false, isMine:true },
+    { key:"ASHUI", name:"阿水",    prob:0.35, score:+1,   grow:+1,   isPositive:true },
+    { key:"DAD",   name:"鹿爸",    prob:0.25, score:+1.5, grow:+1.5, isPositive:true },
+    { key:"MOM",   name:"花媽",    prob:0.20, score:+3,   grow:+2,   isPositive:true, isEgg:true },
+    { key:"ANGRY", name:"生氣鹿鹿", prob:0.20, score:-3,  shrink:2,  isPositive:false, isMine:true },
   ];
-
   function pickItemByProb(){
     const r = Math.random();
     let acc = 0;
@@ -667,79 +676,95 @@
   }
 
   /***********************
-   * 8) 遊戲狀態
+   * 分層刷新控制（你要的活動感）
+   ***********************/
+  let lastMomSpawnAt = -1e15;
+  let lastAngrySpawnAt = -1e15;
+
+  const MOM_MIN_GAP_MS = 15000;   // 花媽至少 15 秒才出一次
+  const ANGRY_MIN_GAP_MS = 5500;  // 地雷至少 5.5 秒才出一次（緊張但可控）
+  const ANGRY_SAFE_RADIUS = 5;    // 地雷離蛇頭至少 5 格
+  const MOM_WARN_MS = 1000;       // 花媽出現前 1 秒閃光預告
+
+  // 限時加成圈（60秒後）
+  const BOOST_AFTER_MS = 60000;
+  const BOOST_TTL_MS = 9000;
+  const BOOST_COOLDOWN_MS = 12000;
+  const BOOST_DOUBLE_MS = 3000;
+  let boost = null;               // {x,y,bornAt,ttlMs}
+  let lastBoostSpawnAt = -1e15;
+  let doubleUntil = 0;
+
+  /***********************
+   * 遊戲狀態
    ***********************/
   let running = false;
-
   let dir = {x:1,y:0};
   let nextDir = {x:1,y:0};
 
-  let snake = [];                 // 以 cell 座標
+  let snake = [];
   const INIT_LEN = 1;
 
-  let target = null;              // 目前地圖上的單一物件：{x,y,def}
-  let nextDef = pickItemByProb(); // 顯示下一隻（提示）
-  $nextItem.textContent = nextDef.name;
+  // targets: 真正可吃的物件
+  let targets = [];
+  // warns: 花媽預告閃光（不可吃），時間到會變成 MOM target
+  let warns = []; // {x,y,spawnAt} spawnAt=預告開始時間
 
-  let baseTickMs = 120;           // 初始速度
-  let tickMs = baseTickMs;
-  let tickHandle = null;
+  let desiredCount = 1;
+  let nextDesiredRecalcAt = 0;
 
-  let pendingGrowth = 0;          // 支援 1.5
-  let score = 0;                  // 遊戲內即時分數（尚未加結束長度加成）
+  let pendingGrowth = 0;
+  let score = 0;
   let best = Number(localStorage.getItem(BEST_KEY) || 0);
+  $best.textContent = fmt(best);
 
   // streak
   let streak = 0;
   let lastPositiveEatAt = 0;
 
   // 花媽加速
-  const MOM_SPEED_FACTOR = 1.7;   // 你指定：1.7 倍
-  const MOM_SPEED_MS = baseTickMs / MOM_SPEED_FACTOR; // 約 70.6ms
-  const MOM_BOOST_MS = 3000;      // 你指定：3 秒
+  const baseTickMs = 120;
+  const MOM_SPEED_FACTOR = 1.7;
+  const MOM_SPEED_MS = baseTickMs / MOM_SPEED_FACTOR; // ~70.6ms
+  const MOM_BOOST_MS = 3000;
   let momBoostUntil = 0;
 
-  $best.textContent = fmt(best);
+  let tickMs = baseTickMs;
+  let tickHandle = null;
+  let gameStartAt = 0;
 
-  function fmt(n){
-    const x = Number(n) || 0;
-    // 顯示 0.5、1.5 這種：最多 2 位小數，去尾零
-    return x.toFixed(2).replace(/\.?0+$/,"");
+  const elapsedMs = ()=> running ? (Date.now() - gameStartAt) : 0;
+
+  function chebyshevDist(ax, ay, bx, by){
+    return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+  }
+  function tooCloseToHeadForAngry(x, y){
+    const h = snake[0];
+    if (!h) return false;
+    return chebyshevDist(x, y, h.x, h.y) <= ANGRY_SAFE_RADIUS;
   }
 
-  function multiplierLevel(){
-    // 10/20/30... -> 1/2/3...
-    return Math.floor(streak / 10);
-  }
-
-  function scoreMultiplier(){
-    // x1.25, x1.5, x1.75 ...
-    const lv = multiplierLevel();
-    return 1 + lv * 0.25;
-  }
+  function multiplierLevel(){ return Math.floor(streak / 10); }
+  function scoreMultiplier(){ return 1 + multiplierLevel() * 0.25; } // x1.25/x1.5/...
 
   function speedFactorFromStreak(){
-    // 連吃微幅加快：每 streak +1%（上限 20%），僅吃到加分項目才會維持
     const micro = 1 + Math.min(0.20, streak * 0.01);
-
-    // 10/20/30... 速度開始增加：+20% / +30% / +40%...
     const lv = multiplierLevel();
-    const tier = (lv >= 1) ? (1 + (0.10 * lv + 0.10)) : 1; // lv1=1.2, lv2=1.3, lv3=1.4...
-
+    const tier = (lv >= 1) ? (1 + (0.10 * lv + 0.10)) : 1; // 1.2/1.3/1.4...
     return micro * tier;
   }
 
+  // 緊張但可控：時間越久，基礎速度越快（0~90秒降到 92ms）
   function effectiveTickMs(){
-    // 基於 streak 的基礎速度
+    const e = elapsedMs();
+    const timeBoost = Math.min(1, e / 90000);
+    const timeBaseMs = baseTickMs - (baseTickMs - 92) * timeBoost;
+
     const sf = speedFactorFromStreak();
-    let ms = baseTickMs / sf;
+    let ms = timeBaseMs / sf;
 
-    // 花媽加速覆蓋（更快）
     if (Date.now() < momBoostUntil) ms = Math.min(ms, MOM_SPEED_MS);
-
-    // 夾限
-    ms = Math.max(55, Math.min(180, ms));
-    return ms;
+    return clamp(ms, 55, 180);
   }
 
   function applyTickRate(){
@@ -752,6 +777,43 @@
     }
   }
 
+  function currentScoreFinalForUI(){
+    const bonus = Math.max(0, snake.length - INIT_LEN);
+    return score + bonus;
+  }
+
+  /***********************
+   * 物件數量節奏（你指定的時間段）
+   ***********************/
+  function updateDesiredCount(){
+    const e = elapsedMs();
+
+    // 每 3 秒才重新抽一次，避免一直跳
+    if (Date.now() < nextDesiredRecalcAt) return;
+    nextDesiredRecalcAt = Date.now() + 3000;
+
+    let min=1, max=1;
+    if (e < 20000) {          // 0–20
+      min=1; max=1;
+    } else if (e < 40000) {   // 20–40
+      min=1; max=2;
+    } else if (e < 60000) {   // 40–60
+      min=2; max=3;
+    } else {                  // 60+
+      min=3; max=4;
+    }
+    desiredCount = min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  // 刷新節奏：越後期越快
+  function ttlForNow(){
+    const e = elapsedMs();
+    if (e < 20000) return randRange(11000, 15000);
+    if (e < 40000) return randRange(10000, 14000);
+    if (e < 60000) return randRange(9000, 13000);
+    return randRange(7000, 10000);
+  }
+
   function updateUI(){
     $score.textContent = fmt(score);
     $streak.textContent = String(Math.floor(streak));
@@ -761,15 +823,19 @@
     const boosting = Date.now() < momBoostUntil;
     const sf = speedFactorFromStreak();
     const baseFast = (sf > 1.02);
-
     if (boosting) $spd.textContent = "花媽加速中";
     else if (baseFast) $spd.textContent = "連吃加速中";
     else $spd.textContent = "正常";
+
+    $liveItems.textContent = `${targets.length}${boost ? "+圈" : ""}/${desiredCount}`;
+    $x2Tag.style.display = (Date.now() < doubleUntil) ? "inline-flex" : "none";
   }
 
-  function cellOccupied(c){
-    if (snake.some(s => s.x===c.x && s.y===c.y)) return true;
-    if (target && target.x===c.x && target.y===c.y) return true;
+  function cellOccupied(x,y){
+    if (snake.some(s => s.x===x && s.y===y)) return true;
+    if (targets.some(t => t.x===x && t.y===y)) return true;
+    if (warns.some(w => w.x===x && w.y===y)) return true;
+    if (boost && boost.x===x && boost.y===y) return true;
     return false;
   }
 
@@ -777,71 +843,336 @@
     return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
   }
 
-  function spawnTarget(){
-    const def = nextDef;
-    nextDef = pickItemByProb();
-    $nextItem.textContent = nextDef.name;
-
-    let c = randCell();
-    let tries = 0;
-    while (cellOccupied(c) && tries < 500) { c = randCell(); tries++; }
-
-    target = { x:c.x, y:c.y, def };
+  /***********************
+   * 分層刷新：生成一個 target（可能會先生成 MOM 預告）
+   ***********************/
+  function maxMinesNow(){
+    const e = elapsedMs();
+    // 60秒後地雷更常見，但仍可控
+    return (e < 60000) ? 1 : 2;
   }
 
-  function resetGame(){
-    running = false;
-    clearInterval(tickHandle); tickHandle = null;
+  function canSpawnMom(now){
+    return (now - lastMomSpawnAt) >= MOM_MIN_GAP_MS;
+  }
+  function canSpawnAngry(now){
+    return (now - lastAngrySpawnAt) >= ANGRY_MIN_GAP_MS;
+  }
 
-    dir = {x:1,y:0};
-    nextDir = {x:1,y:0};
+  function tryPlaceAtSafeCell(predicate){
+    for (let attempt=0; attempt<120; attempt++){
+      let c = randCell();
+      let tries = 0;
+      while (cellOccupied(c.x,c.y) && tries < 500){
+        c = randCell(); tries++;
+      }
+      if (cellOccupied(c.x,c.y)) continue;
+      if (predicate && !predicate(c.x,c.y)) continue;
+      return c;
+    }
+    return null;
+  }
 
-    snake = [{ x: Math.floor(GRID/2), y: Math.floor(GRID/2) }];
-    pendingGrowth = 0;
+  function scheduleMomWarn(now){
+    // 找位置（不需避頭，但避免撞蛇/物件）
+    const c = tryPlaceAtSafeCell(() => true);
+    if (!c) return false;
+    warns.push({ x:c.x, y:c.y, spawnAt: now }); // 1 秒後轉 MOM
+    lastMomSpawnAt = now; // 先鎖定冷卻，避免連續預告
+    return true;
+  }
 
-    score = 0;
-    streak = 0;
-    lastPositiveEatAt = 0;
-    momBoostUntil = 0;
+  function spawnOneTarget(now){
+    const e = elapsedMs();
+    const minesOnField = targets.filter(t => t.def.key === "ANGRY").length;
 
-    target = null;
-    spawnTarget();
+    // 60秒後：偶爾連鎖生成 2 顆地雷（不陰：離頭>=5，且不超過上限）
+    const allowChainMine = (e >= 60000) && (Math.random() < 0.18); // 偶爾
+    const maxMines = maxMinesNow();
+
+    // 先嘗試按權重抽 def，但要符合分層規則
+    for (let attempt=0; attempt<120; attempt++){
+      let def = pickItemByProb();
+
+      // 花媽：必須符合冷卻 -> 改成「先閃光 1 秒」再出現
+      if (def.key === "MOM"){
+        if (!canSpawnMom(now)) continue;
+        // 先排程預告（1秒後真正出現）
+        if (scheduleMomWarn(now)) return true;
+        continue;
+      }
+
+      // 地雷：冷卻 + 同場上限 + 離頭5格
+      if (def.key === "ANGRY"){
+        if (!canSpawnAngry(now)) continue;
+        if (minesOnField >= maxMines) continue;
+
+        const c = tryPlaceAtSafeCell((x,y)=> !tooCloseToHeadForAngry(x,y));
+        if (!c) continue;
+
+        targets.push({ x:c.x, y:c.y, def, bornAt: now, ttlMs: ttlForNow() });
+        lastAngrySpawnAt = now;
+
+        // 連鎖 2 顆（仍需上限 + 安全距離）
+        if (allowChainMine && targets.filter(t => t.def.key === "ANGRY").length < maxMines){
+          // 連鎖的第二顆不需要額外冷卻，但仍避頭/不重疊
+          const c2 = tryPlaceAtSafeCell((x,y)=> !tooCloseToHeadForAngry(x,y));
+          if (c2){
+            targets.push({ x:c2.x, y:c2.y, def, bornAt: now, ttlMs: ttlForNow() });
+            // 連鎖生成也更新 lastAngrySpawnAt，避免馬上又出
+            lastAngrySpawnAt = now;
+          }
+        }
+
+        return true;
+      }
+
+      // 一般加分（阿水/鹿爸）
+      const c = tryPlaceAtSafeCell(() => true);
+      if (!c) continue;
+
+      targets.push({ x:c.x, y:c.y, def, bornAt: now, ttlMs: ttlForNow() });
+      return true;
+    }
+
+    // 保底：放阿水
+    const safeDef = ITEM_DEFS.find(d => d.key === "ASHUI") || ITEM_DEFS[0];
+    const c = tryPlaceAtSafeCell(() => true);
+    if (!c) return false;
+    targets.push({ x:c.x, y:c.y, def:safeDef, bornAt: now, ttlMs: ttlForNow() });
+    return true;
+  }
+
+  /***********************
+   * 60秒後：限時加成圈（x2 3秒）
+   ***********************/
+  function maybeSpawnBoost(now){
+    const e = elapsedMs();
+    if (e < BOOST_AFTER_MS) return;
+    if (boost) return;
+    if ((now - lastBoostSpawnAt) < BOOST_COOLDOWN_MS) return;
+
+    // 機率：越後期略提高（緊張但可控）
+    const p = clamp(0.05 + Math.min(0.05, (e-BOOST_AFTER_MS)/120000*0.05), 0.05, 0.10);
+    if (Math.random() > p) return;
+
+    const c = tryPlaceAtSafeCell(() => true);
+    if (!c) return;
+    boost = { x:c.x, y:c.y, bornAt: now, ttlMs: BOOST_TTL_MS };
+    lastBoostSpawnAt = now;
+  }
+
+  /***********************
+   * 維持目標：過期不消失 -> 換位置/換角色
+   ***********************/
+  function rerollTarget(t, now){
+    // 重抽 def（遵守分層：可能轉成 MOM 預告）
+    // 先把原本位置釋放：做法是先暫時把它移除，再重新生成
+    const idx = targets.indexOf(t);
+    if (idx >= 0) targets.splice(idx, 1);
+
+    // 重新生成一個（可能是 MOM 預告或一般物件）
+    const ok = spawnOneTarget(now);
+    if (!ok){
+      // 生成失敗就把原本塞回去（極端保底）
+      targets.push(t);
+    }
+  }
+
+  function maintainAll(){
+    const now = Date.now();
+
+    updateDesiredCount();
+
+    // 1) 花媽預告：到 1 秒就轉成 MOM target
+    if (warns.length){
+      const keep = [];
+      for (const w of warns){
+        if (now - w.spawnAt >= MOM_WARN_MS){
+          // 轉 MOM target
+          const def = ITEM_DEFS.find(d => d.key === "MOM");
+          if (def && !cellOccupied(w.x,w.y)){
+            targets.push({ x:w.x, y:w.y, def, bornAt: now, ttlMs: ttlForNow() });
+            // MOM 生成不算地雷，不用安全距離；已經鎖冷卻
+            sfxBeep(880, 0.05, "square", 0.10); // 小提示音（不會太吵）
+          }
+        } else {
+          keep.push(w);
+        }
+      }
+      warns = keep;
+    }
+
+    // 2) boost：過期改成換位置（不消失）
+    if (boost){
+      if ((now - boost.bornAt) > boost.ttlMs){
+        const c = tryPlaceAtSafeCell(() => true);
+        if (c){
+          boost.x = c.x; boost.y = c.y;
+          boost.bornAt = now;
+          boost.ttlMs = BOOST_TTL_MS;
+        } else {
+          // 找不到就延長避免卡死
+          boost.bornAt = now;
+          boost.ttlMs = BOOST_TTL_MS;
+        }
+      }
+    } else {
+      maybeSpawnBoost(now);
+    }
+
+    // 3) targets：過期就「換位置/換角色」
+    for (const t of [...targets]){
+      if ((now - t.bornAt) > t.ttlMs){
+        rerollTarget(t, now);
+      }
+    }
+
+    // 4) 補到 desiredCount（注意：MOM 預告算“將要出現”，但不算目前 targets，所以仍補 targets）
+    while (targets.length < desiredCount){
+      spawnOneTarget(now);
+      // 防呆：如果一直生不出，避免死循環
+      if (targets.length > desiredCount + 2) break;
+    }
+
+    // 5) 若超過（保底縮回）
+    while (targets.length > desiredCount){
+      targets.pop();
+    }
+  }
+
+  /***********************
+   * 吃到物件（含 x2）
+   ***********************/
+  function applyDoubleMultiplier(val){
+    return (Date.now() < doubleUntil) ? (val * 2) : val;
+  }
+
+  function onEat(def){
+    if (def.isPositive){
+      streak += 1;
+      lastPositiveEatAt = Date.now();
+
+      const mult = scoreMultiplier();
+      const baseAdd = (def.score || 0) * mult;
+      score += applyDoubleMultiplier(baseAdd);
+
+      pendingGrowth += (def.grow || 0);
+
+      // 音效：連吃音高
+      const pitch = 520 + Math.min(30, Math.floor(streak)) * 18;
+      sfxBeep(pitch, 0.06, "sine", 0.18);
+      sfxBeep(pitch * 1.18, 0.04, "triangle", 0.12);
+
+      // 花媽：加速 3 秒（1.7x）＋特殊音效
+      if (def.isEgg){
+        momBoostUntil = Date.now() + MOM_BOOST_MS;
+        sfxBeep(988, 0.07, "square", 0.20);
+        sfxBeep(1319, 0.09, "square", 0.18);
+        sfxBeep(1760, 0.11, "triangle", 0.14);
+      }
+    } else {
+      // 地雷：中斷連吃、速度重置（也取消花媽加速）
+      streak = 0;
+      lastPositiveEatAt = 0;
+      momBoostUntil = 0;
+
+      score += (def.score || 0);
+
+      const shrink = def.shrink || 0;
+      pendingGrowth = 0;
+      for (let i=0; i<shrink; i++){
+        if (snake.length > INIT_LEN) snake.pop();
+      }
+
+      sfxBeep(160, 0.09, "sawtooth", 0.22);
+      sfxBeep(120, 0.11, "sawtooth", 0.20);
+    }
+
+    applyTickRate();
+    updateUI();
+  }
+
+  function onEatBoost(){
+    // x2 3 秒（不加長、不算扣分）
+    doubleUntil = Date.now() + BOOST_DOUBLE_MS;
+    sfxBeep(740, 0.06, "triangle", 0.14);
+    sfxBeep(988, 0.08, "triangle", 0.14);
+    sfxBeep(1319, 0.10, "triangle", 0.12);
+
+    // 吃到後把圈移走，稍後再生成（cooldown 由 lastBoostSpawnAt 控制）
+    boost = null;
+
+    // 算「加分事件」：算連吃+1 但不加分，讓玩家更想去吃
+    streak += 1;
+    lastPositiveEatAt = Date.now();
+
+    applyTickRate();
+    updateUI();
+  }
+
+  /***********************
+   * 遊戲迴圈
+   ***********************/
+  function tick(){
+    if (!running) return;
+
+    // 連吃衰減：超過 3 秒沒吃到加分項目才下降
+    if (streak > 0 && lastPositiveEatAt > 0 && (Date.now() - lastPositiveEatAt >= 3000)) {
+      streak = Math.max(0, streak - 0.35);
+    }
+
+    // 維持物件（含：過期換位/換角、花媽預告轉正、x2圈）
+    maintainAll();
+
+    dir = nextDir;
+    const head = snake[0];
+    const newHead = { x: head.x + dir.x, y: head.y + dir.y };
+
+    // 撞牆
+    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= GRID || newHead.y >= GRID){
+      gameOver("撞到牆");
+      return;
+    }
+    // 撞自己
+    if (snake.some((s,i)=> i!==0 && s.x===newHead.x && s.y===newHead.y)){
+      gameOver("撞到自己");
+      return;
+    }
+
+    snake.unshift(newHead);
+
+    // 先檢查吃到 x2 圈（優先處理）
+    if (boost && newHead.x === boost.x && newHead.y === boost.y){
+      onEatBoost();
+    }
+
+    // 檢查吃到任一 target
+    const hitIndex = targets.findIndex(t => t.x === newHead.x && t.y === newHead.y);
+    if (hitIndex >= 0){
+      const t = targets[hitIndex];
+      onEat(t.def);
+      targets.splice(hitIndex, 1);
+      // 吃掉後立刻補量（維持節奏）
+      maintainAll();
+    }
+
+    // 成長（支援 1.5）
+    if (pendingGrowth >= 1){
+      pendingGrowth -= 1;
+    } else {
+      snake.pop();
+    }
 
     applyTickRate();
     updateUI();
     draw();
   }
 
-  function startGame(){
-    if (running) return;
-    running = true;
-
-    ensureAudio();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    if ($bgmOn.checked) startBGM();
-
-    applyTickRate();
-    clearInterval(tickHandle);
-    tickHandle = setInterval(tick, tickMs);
-  }
-
-  function setDir(nx, ny){
-    // 禁止反向
-    if (snake.length > 1 && nx === -dir.x && ny === -dir.y) return;
-    nextDir = {x:nx, y:ny};
-  }
-
-  function currentScoreFinalForUI(){
-    // 你指定：結束時「每多一格身體 +1 分」
-    const bonus = Math.max(0, snake.length - INIT_LEN);
-    return score + bonus;
-  }
-
   function gameOver(reason="撞到牆或自己"){
     running = false;
     clearInterval(tickHandle); tickHandle = null;
 
-    // 失敗音效
     sfxBeep(220, 0.10, "sawtooth", 0.22);
     sfxBeep(196, 0.12, "sawtooth", 0.18);
 
@@ -854,23 +1185,21 @@
       $best.textContent = fmt(best);
     }
 
-    // 排行榜紀錄附隨機鹿鹿頭貼
     const avaUrl = pickRandomAva();
     const top10 = addScoreToBoard({ name: playerName, score: finalScore, at: Date.now(), avaUrl });
 
     openModal({
-      title: `遊戲結束！`,
+      title: "遊戲結束！",
       sub: `原因：${reason}　｜　結束加成：身體多 ${bonus} 格 +${bonus} 分`,
       text:
 `你的最終分數：<b>${fmt(finalScore)}</b><br/>
-（即時分數：${fmt(score)}  ＋  長度加成：${fmt(bonus)}）`,
+（即時分數：${fmt(score)} ＋ 長度加成：${fmt(bonus)}）`,
       score: finalScore,
       showRank: true,
       showAgain: true,
       rankData: top10,
       avaUrl
     });
-    btnAgain.style.display = "inline-flex";
   }
 
   btnAgain.addEventListener("click", () => {
@@ -878,7 +1207,6 @@
     resetGame();
     startGame();
   });
-
   btnGo.addEventListener("click", () => {
     closeModal();
     resetGame();
@@ -886,117 +1214,7 @@
   });
 
   /***********************
-   * 9) 吃到物件的處理（加分/扣分/增減身體/加速）
-   ***********************/
-  function onEat(def){
-    if (def.isPositive){
-      // streak +1
-      streak += 1;
-      lastPositiveEatAt = Date.now();
-
-      // 倍率分數（只對加分項目）
-      const mult = scoreMultiplier();
-      const add = (def.score || 0) * mult;
-      score += add;
-
-      // 增長（支援 1.5）
-      pendingGrowth += (def.grow || 0);
-
-      // 音效：連吃音高變高
-      const pitch = 520 + Math.min(30, Math.floor(streak)) * 18;
-      sfxBeep(pitch, 0.06, "sine", 0.18);
-      sfxBeep(pitch * 1.18, 0.04, "triangle", 0.12);
-
-      // 花媽：短暫加速 3 秒（1.7 倍）＋明顯特殊音效
-      if (def.isEgg){
-        momBoostUntil = Date.now() + MOM_BOOST_MS;
-        sfxBeep(988, 0.07, "square", 0.20);
-        sfxBeep(1319, 0.09, "square", 0.18);
-        sfxBeep(1760, 0.11, "triangle", 0.14);
-      }
-    } else {
-      // 扣分項目：中斷連吃＋速度重置從初始計算
-      streak = 0;
-      lastPositiveEatAt = 0;
-      momBoostUntil = 0; // 地雷也把花媽加速打掉（更直覺）
-
-      score += (def.score || 0); // negative
-      // 不能低於 0 分？你沒要求，所以允許負分（想鎖 0 我也可改）
-
-      // 身體減少：每吃 1 個減少 2 個部分，最低為初始 1
-      const shrink = def.shrink || 0;
-      if (shrink > 0){
-        // 先清掉 pendingGrowth，避免「剛加長又縮短」的奇怪半段
-        pendingGrowth = 0;
-        for (let i=0; i<shrink; i++){
-          if (snake.length > INIT_LEN) snake.pop();
-        }
-      }
-
-      // 明顯地雷音效
-      sfxBeep(160, 0.09, "sawtooth", 0.22);
-      sfxBeep(120, 0.11, "sawtooth", 0.20);
-    }
-
-    applyTickRate();
-    updateUI();
-  }
-
-  /***********************
-   * 10) Tick：移動、碰撞、吃到、連吃衰減
-   ***********************/
-  function tick(){
-    if (!running) return;
-
-    // 連吃衰減：超過 3 秒沒吃到加分項目才開始下降
-    if (streak > 0 && lastPositiveEatAt > 0) {
-      if (Date.now() - lastPositiveEatAt >= 3000) {
-        streak = Math.max(0, streak - 0.35);
-      }
-    }
-
-    dir = nextDir;
-    const head = snake[0];
-    const newHead = { x: head.x + dir.x, y: head.y + dir.y };
-
-    // 撞牆
-    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= GRID || newHead.y >= GRID){
-      gameOver("撞到牆");
-      return;
-    }
-
-    // 撞自己
-    if (snake.some((s,i)=> i!==0 && s.x===newHead.x && s.y===newHead.y)){
-      gameOver("撞到自己");
-      return;
-    }
-
-    snake.unshift(newHead);
-
-    // 吃到物件
-    if (target && newHead.x === target.x && newHead.y === target.y){
-      onEat(target.def);
-      target = null;
-      spawnTarget();
-    }
-
-    // 增長/維持長度：pendingGrowth >= 1 就不 pop
-    if (pendingGrowth >= 1){
-      pendingGrowth -= 1;
-      // 不 pop -> 身體變長
-    } else {
-      // 正常前進 -> 移除尾巴
-      if (snake.length > INIT_LEN) snake.pop();
-      else snake.pop(); // INIT_LEN=1 仍要讓頭前進；但因為 unshift 了，pop 讓長度維持 1
-    }
-
-    applyTickRate();
-    updateUI();
-    draw();
-  }
-
-  /***********************
-   * 11) 繪圖：格線 + 蛇身 + 蛇頭(圖片) + 物件(圖片)
+   * 繪圖
    ***********************/
   function drawGridGlow(){
     ctx.save();
@@ -1027,12 +1245,11 @@
     roundRect(x+2,y+2,CELL-4,CELL-4,8);
     ctx.fill();
 
-    // 斑點（明顯）
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#d0892d";
-    [[x+6,y+7],[x+12,y+10],[x+9,y+14]].forEach(([sx,sy])=>{
+    [[x+7,y+8],[x+14,y+11],[x+10,y+16]].forEach(([sx,sy])=>{
       ctx.beginPath();
-      ctx.ellipse(sx, sy, 2.7, 2.2, 0, 0, Math.PI*2);
+      ctx.ellipse(sx, sy, 3.1, 2.6, 0, 0, Math.PI*2);
       ctx.fill();
     });
     ctx.restore();
@@ -1042,24 +1259,14 @@
     const img = SPR.HEAD;
     const x = seg.x * CELL, y = seg.y * CELL;
 
-    // 先畫底（避免圖片透明造成破洞）
     ctx.save();
     ctx.fillStyle = "#ffe29a";
     roundRect(x+2,y+2,CELL-4,CELL-4,8);
     ctx.fill();
     ctx.restore();
 
-    if (!img){
-      // fallback：沒載入到就用簡化頭
-      ctx.save();
-      ctx.fillStyle="#111";
-      ctx.beginPath(); ctx.arc(x+14,y+10,2.2,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x+18,y+13,2.2,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-      return;
-    }
+    if (!img) return;
 
-    // 依方向旋轉圖片
     let ang = 0;
     if (dir.x === 1) ang = 0;
     if (dir.x === -1) ang = Math.PI;
@@ -1068,44 +1275,95 @@
 
     const cx = x + CELL/2;
     const cy = y + CELL/2;
+
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
-    const size = CELL * 0.92;
+
+    const size = CELL * HEAD_SCALE;
     ctx.drawImage(img, -size/2, -size/2, size, size);
     ctx.restore();
   }
 
   function drawTarget(t){
-    if (!t) return;
     const def = t.def;
     const img = SPR[def.key] || null;
     const x = t.x * CELL, y = t.y * CELL;
 
     ctx.save();
-
-    // 外光（讓彩蛋/地雷更明顯）
     if (def.isEgg){
-      ctx.shadowColor = "rgba(255,200,0,.5)";
-      ctx.shadowBlur = 16;
+      ctx.shadowColor = "rgba(255,200,0,.55)";
+      ctx.shadowBlur = 18;
     } else if (def.isMine){
-      ctx.shadowColor = "rgba(255,60,60,.5)";
-      ctx.shadowBlur = 16;
+      ctx.shadowColor = "rgba(255,60,60,.55)";
+      ctx.shadowBlur = 18;
     } else {
       ctx.shadowColor = "rgba(255,120,190,.35)";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 12;
     }
 
-    if (img){
-      const pad = CELL * 0.08;
-      ctx.drawImage(img, x+pad, y+pad, CELL-2*pad, CELL-2*pad);
-    } else {
-      // fallback：用球
+    const size = CELL * TARGET_SCALE;
+    const ox = x + (CELL - size) / 2;
+    const oy = y + (CELL - size) / 2;
+
+    if (img) ctx.drawImage(img, ox, oy, size, size);
+    else {
       ctx.fillStyle = def.isMine ? "#ff4d4f" : (def.isEgg ? "#ffd24d" : "#ff5aa5");
       ctx.beginPath();
-      ctx.arc(x+CELL/2, y+CELL/2, CELL*0.34, 0, Math.PI*2);
+      ctx.arc(x+CELL/2, y+CELL/2, CELL*0.38, 0, Math.PI*2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  function drawMomWarn(w){
+    const x = w.x * CELL, y = w.y * CELL;
+    const blink = Math.sin((Date.now() - w.spawnAt) / 80) > 0 ? 1 : 0.35;
+
+    ctx.save();
+    ctx.globalAlpha = 0.85 * blink;
+    ctx.shadowColor = "rgba(255,215,0,.9)";
+    ctx.shadowBlur = 22;
+    ctx.strokeStyle = "rgba(255,215,0,.95)";
+    ctx.lineWidth = 4;
+    roundRect(x+3, y+3, CELL-6, CELL-6, 10);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.9 * blink;
+    ctx.fillStyle = "rgba(255,215,0,.18)";
+    roundRect(x+3, y+3, CELL-6, CELL-6, 10);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBoost(b){
+    const x = b.x * CELL, y = b.y * CELL;
+    const t = Date.now() - b.bornAt;
+    const pulse = 0.5 + 0.5*Math.sin(t/180);
+
+    ctx.save();
+    ctx.shadowColor = "rgba(90,200,255,.75)";
+    ctx.shadowBlur = 22;
+
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = "rgba(90,200,255,.95)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x+CELL/2, y+CELL/2, CELL*0.38 + pulse*2, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "rgba(90,200,255,.25)";
+    ctx.beginPath();
+    ctx.arc(x+CELL/2, y+CELL/2, CELL*0.32 + pulse*2, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(255,255,255,.9)";
+    ctx.font = `900 ${Math.floor(CELL*0.36)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("x2", x+CELL/2, y+CELL/2);
 
     ctx.restore();
   }
@@ -1117,10 +1375,12 @@
 
     drawGridGlow();
 
-    // target
-    drawTarget(target);
+    // 先畫特效（預告、加成圈）再畫可吃物件
+    warns.forEach(drawMomWarn);
+    if (boost) drawBoost(boost);
+    targets.forEach(drawTarget);
 
-    // body then head
+    // snake
     for (let i=snake.length-1; i>=1; i--) drawBody(snake[i], i);
     drawHead(snake[0]);
 
@@ -1133,14 +1393,19 @@
       ctx.fillText("按「開始」或滑動/方向鍵開始", cv.width/2, cv.height/2 - 10);
       ctx.font = "13px system-ui, -apple-system";
       ctx.fillStyle = "rgba(255,255,255,.7)";
-      ctx.fillText("阿水/鹿爸/花媽加分，生氣鹿鹿扣分縮短", cv.width/2, cv.height/2 + 14);
+      ctx.fillText("花媽會先閃光1秒再出現；60秒後會出 x2 加成圈", cv.width/2, cv.height/2 + 14);
       ctx.restore();
     }
   }
 
   /***********************
-   * 12) 輸入：鍵盤 / 觸控滑動 / 按鈕
+   * 輸入
    ***********************/
+  function setDir(nx, ny){
+    if (snake.length > 1 && nx === -dir.x && ny === -dir.y) return;
+    nextDir = {x:nx, y:ny};
+  }
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") setDir(0,-1);
     if (e.key === "ArrowDown") setDir(0,1);
@@ -1183,7 +1448,7 @@
   });
 
   /***********************
-   * 13) 按鈕：開始 / 玩法
+   * 按鈕：開始 / 玩法
    ***********************/
   document.getElementById("btnStart").addEventListener("click", () => {
     if (!snake.length) resetGame();
@@ -1196,22 +1461,36 @@
 • 阿水 35%：+1 分，身體 +1
 • 鹿爸 25%：+1.5 分，身體 +1.5
 • 花媽 20%（彩蛋）：+3 分，身體 +2，速度 1.7 倍加速 3 秒（特殊音效）
+  ※ 花媽出現前會先「閃光 1 秒」預告
 • 生氣鹿鹿 20%（地雷）：-3 分，身體 -2（最低不小於初始長度 1），並中斷連吃、速度重置
+  ※ 地雷不會生成在蛇頭 5 格內（防太陰）
+  ※ 60 秒後「偶爾連鎖生成 2 顆」（仍遵守離頭 5 格 & 同場上限）
 
 【連吃 streak】
-1) 只要吃到「加分項目」就 streak +1；吃到扣分項目 = 中斷（歸 0）
+1) 吃到「加分項目」streak +1；吃到扣分項目 = 中斷（歸 0）
 2) 連續吃到加分項目才會持續微幅加速 + 音效音高上升
 3) 超過 3 秒沒吃到加分項目，streak 會緩慢下降（每 tick 約 -0.35）
 4) streak 達 10/20/30...：
    • 倍率 x1.25 / x1.5 / x1.75 ...（只乘在「加分項目」得分）
    • 速度額外 +20% / +30% / +40% ...
+5) 遊玩時間越久，整體基礎速度會逐步提升（緊張但可控）
+
+【多物件節奏】
+• 0–20 秒：固定 1 物件（上手）
+• 20–40 秒：1–2 物件
+• 40–60 秒：2–3 物件
+• 60 秒後：3–4 物件 + 更快刷新
+※ 物件「過期」不消失，會換位置/換角色維持活動感
+
+【60 秒後：限時加成圈】
+地圖會出現「x2 加成圈」，吃到後「分數 x2 持續 3 秒」（只影響加分項目得分）
 
 【結束加成】
 每多一格身體 +1 分（以初始長度 1 為基準）`;
 
     openModal({
       title: "玩法與加減分說明",
-      sub: "吃鹿粉（角色）成長！避開地雷！",
+      sub: "緊張但可控：越玩越刺激",
       text: rule,
       score: currentScoreFinalForUI(),
       showRank: false,
@@ -1221,18 +1500,17 @@
   });
 
   /***********************
-   * 14) 開始前遮罩（你要求）
+   * 開始前遮罩（含你要的說明）
    ***********************/
   function showStartIntro(){
     openModal({
       title: "準備開始！",
       sub: "阿鹿鹿文創-貪食鹿(吃鹿粉)",
       text:
-`滑動或方向鍵控制鹿鹿移動。<br/>
-地圖會隨機出現「阿水/鹿爸/花媽/生氣鹿鹿」。<br/>
-吃到加分項目會連吃加速、連吃達 10/20/30... 會有倍率與額外速度。<br/>
-小提醒：花媽是彩蛋（+3 分、身體 +2、1.7 倍加速 3 秒）。<br/>
-吃到生氣鹿鹿會扣分並縮短（最低不小於 1）。`,
+`前 20 秒固定 1 物件讓你上手；之後物件數量與刷新速度會逐步提升。<br/>
+花媽是彩蛋：會先「閃光 1 秒」預告，吃到 +3 分、身體 +2、1.7 倍加速 3 秒。<br/>
+生氣鹿鹿是地雷：扣分縮短（最低不小於 1），並中斷連吃；且不會在蛇頭 5 格內生成。<br/>
+60 秒後會出現「x2 限時加成圈」：吃到後分數 x2 持續 3 秒（只影響加分項目）。`,
       score: 0,
       showGo: true,
       showRank: false,
@@ -1242,7 +1520,64 @@
   }
 
   /***********************
-   * 15) 初始化
+   * Reset / Start
+   ***********************/
+  function resetGame(){
+    running = false;
+    clearInterval(tickHandle); tickHandle = null;
+
+    dir = {x:1,y:0};
+    nextDir = {x:1,y:0};
+
+    snake = [{ x: Math.floor(GRID/2), y: Math.floor(GRID/2) }];
+    pendingGrowth = 0;
+
+    score = 0;
+    streak = 0;
+    lastPositiveEatAt = 0;
+
+    momBoostUntil = 0;
+    lastMomSpawnAt = -1e15;
+    lastAngrySpawnAt = -1e15;
+
+    boost = null;
+    lastBoostSpawnAt = -1e15;
+    doubleUntil = 0;
+
+    targets = [];
+    warns = [];
+
+    desiredCount = 1;
+    nextDesiredRecalcAt = 0;
+    gameStartAt = 0;
+
+    // 初始補一個物件
+    updateDesiredCount();
+    maintainAll();
+
+    applyTickRate();
+    updateUI();
+    draw();
+  }
+
+  function startGame(){
+    if (running) return;
+    running = true;
+    gameStartAt = Date.now();
+    nextDesiredRecalcAt = 0;
+
+    ensureAudio();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    if ($bgmOn.checked) startBGM();
+
+    maintainAll();
+    applyTickRate();
+    clearInterval(tickHandle);
+    tickHandle = setInterval(tick, tickMs);
+  }
+
+  /***********************
+   * 初始化
    ***********************/
   preload().finally(() => {
     resetGame();
