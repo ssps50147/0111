@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <title>鹿鹿貪食蛇｜鹿粉撈撈祭</title>
+  <title>阿鹿鹿文創-貪食鹿(吃鹿粉)</title>
 
   <style>
     :root{
@@ -24,7 +24,7 @@
       justify-content:center;
     }
     .wrap{
-      width:min(520px, 100%);
+      width:min(560px, 100%);
       padding: calc(12px + var(--safeT)) 12px calc(12px + var(--safeB));
       box-sizing:border-box;
     }
@@ -40,8 +40,8 @@
       backdrop-filter: blur(8px);
     }
     .title{display:flex; flex-direction:column; gap:4px;}
-    .title b{font-size:16px;}
-    .title small{opacity:.75;}
+    .title b{font-size:15px; line-height:1.1;}
+    .title small{opacity:.75; line-height:1.1;}
     .pill{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;}
     .btn{
       border:0;
@@ -49,11 +49,12 @@
       border-radius:14px;
       background:#111;
       color:#fff;
-      font-weight:700;
+      font-weight:800;
       cursor:pointer;
       box-shadow: 0 8px 16px rgba(0,0,0,.12);
       user-select:none;
       -webkit-tap-highlight-color: transparent;
+      white-space:nowrap;
     }
     .btn.secondary{
       background:#fff;
@@ -61,9 +62,20 @@
       border:1px solid rgba(0,0,0,.12);
       box-shadow:none;
     }
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.12);
+      font-size:12px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
     .row{display:flex; gap:12px; margin-top:12px; align-items:stretch; flex-wrap:wrap;}
     .panel{
-      flex:1 1 220px;
+      flex:1 1 250px;
       padding:12px;
       border-radius:16px;
       background: var(--card);
@@ -75,10 +87,11 @@
       grid-template-columns: 1fr auto;
       gap:8px 10px;
       align-items:center;
-      font-size:14px;
+      font-size:13px;
     }
-    .kv .v{font-weight:800;}
-    .hint{font-size:12px; opacity:.75; margin-top:8px; line-height:1.4;}
+    .kv .v{font-weight:900;}
+    .hint{font-size:12px; opacity:.75; margin-top:8px; line-height:1.45;}
+
     .gamebox{
       margin-top:12px;
       padding:12px;
@@ -105,12 +118,13 @@
       border-radius:16px;
       border:1px solid rgba(0,0,0,.12);
       background:#fff;
-      font-weight:800;
+      font-weight:900;
       text-align:center;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
     }
     .pad:active{transform: translateY(1px);}
+
     .footer{
       margin-top:12px;
       font-size:12px;
@@ -118,54 +132,30 @@
       text-align:center;
       line-height:1.45;
     }
-    .modalMask{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.45);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 20px;
-      z-index:50;
-    }
-    .modal{
-      width:min(520px, 100%);
-      border-radius:18px;
-      background:#fff;
-      padding:14px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.35);
-    }
-    .modal h3{margin:6px 0 8px; font-size:16px;}
-    .modal p{margin:0 0 10px; font-size:13px; opacity:.85; line-height:1.5;}
-    .modal .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;}
-    .rank{
-      margin-top:10px;
-      border-top:1px dashed rgba(0,0,0,.15);
-      padding-top:10px;
-      font-size:13px;
-    }
-    .rank ol{margin:8px 0 0 18px; padding:0;}
-    .rank li{margin:6px 0; display:flex; justify-content:space-between; gap:10px;}
-    .tag{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid rgba(0,0,0,.12);
-      font-size:12px;
-      font-weight:800;
+
+    .toggleRow{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
     }
     .toggle{
-      display:flex; align-items:center; gap:8px; justify-content:flex-end;
-      font-size:12px; font-weight:800;
+      display:flex; align-items:center; gap:8px;
+      font-size:12px; font-weight:900;
+      white-space:nowrap;
     }
     .toggle input{transform: scale(1.15);}
+    .slider{
+      display:flex; align-items:center; gap:8px;
+      font-size:12px; font-weight:900;
+      white-space:nowrap;
+    }
+    .slider input[type="range"]{ width:120px; }
 
     .namebox{
       display:flex;
       gap:8px;
       align-items:center;
       justify-content:flex-end;
-      margin-top:8px;
       flex-wrap:wrap;
     }
     .namebox input{
@@ -173,10 +163,82 @@
       border:1px solid rgba(0,0,0,.15);
       border-radius:12px;
       padding:10px 12px;
-      font-weight:800;
+      font-weight:900;
       outline:none;
       background:#fff;
     }
+
+    /* Modal */
+    .mask{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.48);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index:50;
+    }
+    .modal{
+      width:min(560px, 100%);
+      border-radius:18px;
+      background:#fff;
+      padding:14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .modalHead{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+    }
+    .modalHeadLeft{
+      display:flex; gap:12px; align-items:center;
+      min-width:0;
+    }
+    .avatar{
+      width:54px; height:54px;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#fff;
+      object-fit:cover;
+      flex: 0 0 auto;
+    }
+    .modal h3{margin:6px 0 8px; font-size:16px;}
+    .modal p{margin:0 0 10px; font-size:13px; opacity:.88; line-height:1.55;}
+    .modal .actions{
+      display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;
+    }
+    .rank{
+      margin-top:10px;
+      border-top:1px dashed rgba(0,0,0,.15);
+      padding-top:10px;
+      font-size:13px;
+    }
+    .rank ol{margin:8px 0 0 0; padding:0; list-style:none;}
+    .rank li{
+      margin:8px 0;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:8px 10px;
+      border-radius:14px;
+      background: rgba(0,0,0,.04);
+    }
+    .rankLeft{
+      display:flex; align-items:center; gap:10px;
+      min-width:0;
+    }
+    .rankAva{
+      width:36px; height:36px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.12);
+      object-fit:cover;
+      background:#fff;
+      flex: 0 0 auto;
+    }
+    .rankName{
+      font-weight:900;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width: 260px;
+    }
+    .rankScore{font-weight:900;}
   </style>
 </head>
 
@@ -184,12 +246,13 @@
 <div class="wrap">
   <div class="topbar">
     <div class="title">
-      <b>🦒 鹿鹿貪食蛇（吃鹿粉）</b>
-      <small>玩家：<span id="playerName">Guest</span></small>
+      <b>阿鹿鹿文創-貪食鹿(吃鹿粉)</b>
+      <small>玩家：<span id="playerName">Guest</span>　｜　倍率：<span id="mult">x1</span></small>
     </div>
     <div class="pill">
       <span class="tag">分數 <span id="score">0</span></span>
       <span class="tag">最高 <span id="best">0</span></span>
+      <button class="btn secondary" id="btnRank">查詢排行榜</button>
       <button class="btn secondary" id="btnHow">玩法</button>
       <button class="btn" id="btnStart">開始</button>
     </div>
@@ -200,29 +263,33 @@
       <div class="kv">
         <div>速度</div><div class="v" id="spd">正常</div>
         <div>連吃</div><div class="v" id="streak">0</div>
-        <div>彩蛋</div><div class="v" id="egg">未出現</div>
+        <div>下一隻</div><div class="v" id="nextItem">—</div>
+        <div>身體長度</div><div class="v" id="len">1</div>
       </div>
       <div class="hint">
-        手機：滑動畫面或按下方方向鍵<br/>
-        電腦：方向鍵控制<br/>
-        彩蛋：出現後吃到會 <b>加大分＋短暫加速</b>
+        加分項目才算連吃；吃到地雷「生氣鹿鹿」會中斷連吃並重置速度。<br/>
+        超過 3 秒沒吃到加分項目，連吃會開始緩慢下降（每 tick 約 -0.35）。
       </div>
     </div>
 
     <div class="panel">
-      <div class="toggle">
-        <label><input type="checkbox" id="bgmOn" checked> BGM</label>
-        <label><input type="checkbox" id="sfxOn" checked> 音效</label>
+      <div class="toggleRow">
+        <div class="toggle"><label><input type="checkbox" id="bgmOn" checked> BGM</label></div>
+        <div class="slider">音量 <input id="bgmVol" type="range" min="0" max="100" value="35"></div>
+      </div>
+      <div class="toggleRow" style="margin-bottom:0;">
+        <div class="toggle"><label><input type="checkbox" id="sfxOn" checked> 音效</label></div>
+        <div class="slider">音量 <input id="sfxVol" type="range" min="0" max="100" value="55"></div>
       </div>
 
-      <div class="namebox">
+      <div class="namebox" style="margin-top:10px;">
         <input id="nameInput" maxlength="12" placeholder="輸入暱稱（可選）" />
         <button class="btn secondary" id="btnSetName">套用</button>
       </div>
 
       <div class="hint">
-        排行榜使用 <b>LocalStorage</b>（免後端）<br/>
-        若不輸入暱稱，預設顯示 Guest。
+        排行榜使用 LocalStorage（免後端）。<br/>
+        小提醒：LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。
       </div>
     </div>
   </div>
@@ -239,36 +306,67 @@
   </div>
 
   <div class="footer">
-    直接上傳到任何靜態網站，貼網址到 LINE 點擊即可玩。<br/>
-    ※ LINE/iOS 需「第一次互動」後才能播聲音（已處理）。
+    食物/彩蛋/地雷會隨機生成在地圖上，吃到會依規則加減分與增減身體。<br/>
+    結束加成：每多一格身體 +1 分（以初始長度 1 為基準）。
   </div>
 </div>
 
-<div class="modalMask" id="mask">
+<!-- 共用 Modal -->
+<div class="mask" id="mask">
   <div class="modal">
-    <h3 id="modalTitle">玩法</h3>
-    <p id="modalText">
-      你是鹿鹿，去吃「鹿粉」讓身體變長！<br/>
-      偶爾會出現彩蛋物件，吃到會加更多分並短暫加速。<br/>
-      撞牆或撞到自己就結束，會自動寫入排行榜。
-    </p>
+    <div class="modalHead">
+      <div class="modalHeadLeft">
+        <img id="modalAva" class="avatar" alt="鹿鹿" />
+        <div style="min-width:0;">
+          <h3 id="modalTitle" style="margin:0 0 6px;">提示</h3>
+          <div style="font-size:12px;opacity:.8;line-height:1.35;" id="modalSub"></div>
+        </div>
+      </div>
+      <div>
+        <span class="tag">分數 <span id="modalScore">0</span></span>
+      </div>
+    </div>
+
+    <p id="modalText" style="margin-top:10px;"></p>
+
     <div class="rank" id="rankBox" style="display:none;">
       <b>🏆 排行榜（前 10 名）</b>
       <ol id="rankList"></ol>
     </div>
+
     <div class="actions">
       <button class="btn secondary" id="btnClose">關閉</button>
-      <button class="btn" id="btnAgain" style="display:none;">再玩一次</button>
       <button class="btn secondary" id="btnClearRank" style="display:none;">清空排行榜</button>
+      <button class="btn" id="btnGo" style="display:none;">開始遊戲</button>
+      <button class="btn" id="btnAgain" style="display:none;">再玩一次</button>
     </div>
   </div>
 </div>
 
 <script>
 (() => {
-  const STORAGE_KEY = "lulu_snake_leaderboard_v1";
-  const BEST_KEY = "lulu_snake_best_v1";
-  const NAME_KEY = "lulu_snake_name_v1";
+  /***********************
+   * 1) 圖片網址（你提供）
+   ***********************/
+  const URLS = {
+    HEAD: "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true", // 蛇頭：鹿鹿
+    ASHUI: "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true", // 阿水
+    DAD: "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",   // 鹿爸
+    MOM: "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",   // 花媽（彩蛋）
+    ANGRY: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true", // 生氣鹿鹿（地雷）
+  };
+
+  const LULU_POOL = [URLS.HEAD, URLS.DAD, URLS.MOM, URLS.ASHUI, URLS.ANGRY];
+
+  function pickRandomAva(){ return LULU_POOL[Math.floor(Math.random()*LULU_POOL.length)]; }
+
+  /***********************
+   * 2) 基礎設定 / UI
+   ***********************/
+  const STORAGE_KEY = "aruru_snake_board_v2";
+  const BEST_KEY = "aruru_snake_best_v2";
+  const NAME_KEY = "aruru_snake_name_v2";
+  const AUDIO_KEY = "aruru_snake_audio_v2";
 
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
@@ -276,55 +374,118 @@
   const GRID = 24;
   const CELL = cv.width / GRID;
 
-  let running = false;
-  let dir = {x: 1, y: 0};
-  let nextDir = {x: 1, y: 0};
-  let snake = [];
-  let food = null;
-  let egg = null;
-
-  let score = 0;
-  let best = Number(localStorage.getItem(BEST_KEY) || 0);
-  let streak = 0;
-
-  let baseTickMs = 120;
-  let tickMs = baseTickMs;
-  let tickHandle = null;
-  let speedBoostUntil = 0;
-
-  // 玩家暱稱（不需要 LIFF）
-  let playerName = localStorage.getItem(NAME_KEY) || "Guest";
   const $playerName = document.getElementById("playerName");
   const $nameInput = document.getElementById("nameInput");
+  const $score = document.getElementById("score");
+  const $best = document.getElementById("best");
+  const $spd = document.getElementById("spd");
+  const $streak = document.getElementById("streak");
+  const $mult = document.getElementById("mult");
+  const $nextItem = document.getElementById("nextItem");
+  const $len = document.getElementById("len");
+
+  // Modal
+  const mask = document.getElementById("mask");
+  const modalAva = document.getElementById("modalAva");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalSub = document.getElementById("modalSub");
+  const modalText = document.getElementById("modalText");
+  const modalScore = document.getElementById("modalScore");
+  const rankBox = document.getElementById("rankBox");
+  const rankList = document.getElementById("rankList");
+  const btnClose = document.getElementById("btnClose");
+  const btnGo = document.getElementById("btnGo");
+  const btnAgain = document.getElementById("btnAgain");
+  const btnClearRank = document.getElementById("btnClearRank");
+
+  function openModal({title, sub="", text="", score=0, showRank=false, showGo=false, showAgain=false, showClear=false, rankData=null, avaUrl=null}) {
+    modalTitle.textContent = title;
+    modalSub.textContent = sub;
+    modalText.innerHTML = text.replace(/\n/g,"<br/>");
+    modalScore.textContent = fmt(score);
+    modalAva.src = avaUrl || pickRandomAva();
+
+    rankBox.style.display = showRank ? "block" : "none";
+    if (showRank) renderRank(rankData || loadBoard());
+
+    btnGo.style.display = showGo ? "inline-flex" : "none";
+    btnAgain.style.display = showAgain ? "inline-flex" : "none";
+    btnClearRank.style.display = showClear ? "inline-flex" : "none";
+
+    mask.style.display = "flex";
+  }
+  function closeModal(){ mask.style.display = "none"; }
+
+  btnClose.addEventListener("click", closeModal);
+
+  /***********************
+   * 3) 圖片預載（避免白塊）
+   ***********************/
+  const SPR = {};
+  function loadImg(url){
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  async function preload() {
+    const entries = Object.entries(URLS);
+    for (const [k, url] of entries) SPR[k] = await loadImg(url);
+    // pool
+    for (const url of LULU_POOL) { /* warm cache */ await loadImg(url); }
+  }
+
+  /***********************
+   * 4) 玩家暱稱
+   ***********************/
+  let playerName = localStorage.getItem(NAME_KEY) || "Guest";
   $playerName.textContent = playerName;
-  $nameInput.value = playerName === "Guest" ? "" : playerName;
+  $nameInput.value = (playerName === "Guest") ? "" : playerName;
 
   document.getElementById("btnSetName").addEventListener("click", () => {
     const v = ($nameInput.value || "").trim().slice(0,12);
     playerName = v || "Guest";
     localStorage.setItem(NAME_KEY, playerName);
     $playerName.textContent = playerName;
-    beep(660, 0.06, "triangle", 0.10);
+    sfxBeep(660, 0.06, "triangle", 0.12);
   });
 
-  const $score = document.getElementById("score");
-  const $best = document.getElementById("best");
-  const $spd = document.getElementById("spd");
-  const $streak = document.getElementById("streak");
-  const $egg = document.getElementById("egg");
-  $best.textContent = best;
-
   /***********************
-   * WebAudio：BGM / SFX（無外部音檔）
+   * 5) 聲音：BGM / SFX + 音量
    ***********************/
   const $bgmOn = document.getElementById("bgmOn");
   const $sfxOn = document.getElementById("sfxOn");
+  const $bgmVol = document.getElementById("bgmVol");
+  const $sfxVol = document.getElementById("sfxVol");
 
   let audioCtx = null;
   let master = null;
   let bgmGain = null;
-  let bgmOscs = [];
+  let sfxGain = null;
   let bgmTimer = null;
+
+  function loadAudioPrefs(){
+    try{
+      const p = JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}");
+      if (typeof p.bgmOn === "boolean") $bgmOn.checked = p.bgmOn;
+      if (typeof p.sfxOn === "boolean") $sfxOn.checked = p.sfxOn;
+      if (typeof p.bgmVol === "number") $bgmVol.value = String(p.bgmVol);
+      if (typeof p.sfxVol === "number") $sfxVol.value = String(p.sfxVol);
+    } catch {}
+  }
+  function saveAudioPrefs(){
+    localStorage.setItem(AUDIO_KEY, JSON.stringify({
+      bgmOn: $bgmOn.checked,
+      sfxOn: $sfxOn.checked,
+      bgmVol: Number($bgmVol.value),
+      sfxVol: Number($sfxVol.value),
+    }));
+  }
+  loadAudioPrefs();
 
   function ensureAudio() {
     if (audioCtx) return;
@@ -334,11 +495,26 @@
     master.connect(audioCtx.destination);
 
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.value = 0.12;
+    sfxGain = audioCtx.createGain();
     bgmGain.connect(master);
+    sfxGain.connect(master);
+    applyVolumes();
   }
 
-  function beep(freq, dur=0.08, type="sine", vol=0.12) {
+  function applyVolumes(){
+    if (!bgmGain || !sfxGain) return;
+    const bgm = Number($bgmVol.value) / 100; // 0..1
+    const sfx = Number($sfxVol.value) / 100;
+    bgmGain.gain.value = Math.max(0, Math.min(1, bgm)) * 0.28;
+    sfxGain.gain.value = Math.max(0, Math.min(1, sfx)) * 0.9;
+  }
+
+  $bgmOn.addEventListener("change", () => { saveAudioPrefs(); if ($bgmOn.checked) startBGM(); else stopBGM(); });
+  $sfxOn.addEventListener("change", saveAudioPrefs);
+  $bgmVol.addEventListener("input", () => { applyVolumes(); saveAudioPrefs(); });
+  $sfxVol.addEventListener("input", () => { applyVolumes(); saveAudioPrefs(); });
+
+  function sfxBeep(freq, dur=0.08, type="sine", vol=0.18) {
     if (!$sfxOn.checked) return;
     ensureAudio();
     const t0 = audioCtx.currentTime;
@@ -350,9 +526,9 @@
     g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g);
-    g.connect(master);
+    g.connect(sfxGain);
     o.start(t0);
-    o.stop(t0 + dur + 0.02);
+    o.stop(t0 + dur + 0.03);
   }
 
   function startBGM() {
@@ -360,253 +536,480 @@
     ensureAudio();
     stopBGM();
 
+    // Q版輕音和弦分解（不吵）
     const seq = [
-      [392, 494, 587],
-      [440, 554, 659],
-      [349, 440, 523],
-      [392, 494, 587],
+      [392, 494, 587], // G
+      [440, 554, 659], // A
+      [349, 440, 523], // F
+      [392, 494, 587], // G
     ];
     let step = 0;
 
     bgmTimer = setInterval(() => {
-      if (!$bgmOn.checked) return;
-
-      const chord = seq[step % seq.length];
-      step++;
+      if (!$bgmOn.checked || !audioCtx) return;
+      const chord = seq[step % seq.length]; step++;
 
       chord.forEach((f, i) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = "triangle";
         o.frequency.value = f * (i === 0 ? 0.5 : 1);
-        g.gain.value = 0.0001;
         o.connect(g);
         g.connect(bgmGain);
+
         const t = audioCtx.currentTime + i * 0.02;
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+
         o.start(t);
         o.stop(t + 0.22);
-        bgmOscs.push(o);
       });
     }, 520);
   }
+  function stopBGM(){ if (bgmTimer) clearInterval(bgmTimer); bgmTimer = null; }
 
-  function stopBGM() {
-    if (bgmTimer) clearInterval(bgmTimer);
-    bgmTimer = null;
-    bgmOscs = [];
-  }
-
-  function unlockAudioOnFirstInteraction() {
+  // iOS/LINE：第一次互動後解鎖音訊
+  function unlockAudio() {
     ensureAudio();
     if (audioCtx.state === "suspended") audioCtx.resume();
-    startBGM();
-    window.removeEventListener("pointerdown", unlockAudioOnFirstInteraction);
-    window.removeEventListener("touchstart", unlockAudioOnFirstInteraction);
-    window.removeEventListener("keydown", unlockAudioOnFirstInteraction);
+    if ($bgmOn.checked) startBGM();
+    window.removeEventListener("pointerdown", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
   }
-  window.addEventListener("pointerdown", unlockAudioOnFirstInteraction, {once:false});
-  window.addEventListener("touchstart", unlockAudioOnFirstInteraction, {once:false});
-  window.addEventListener("keydown", unlockAudioOnFirstInteraction, {once:false});
-
-  $bgmOn.addEventListener("change", () => $bgmOn.checked ? startBGM() : stopBGM());
+  window.addEventListener("pointerdown", unlockAudio, {once:false});
+  window.addEventListener("touchstart", unlockAudio, {once:false});
+  window.addEventListener("keydown", unlockAudio, {once:false});
 
   /***********************
-   * 排行榜：LocalStorage
+   * 6) 排行榜（LocalStorage）+ 隨機鹿鹿圖
    ***********************/
-  function loadLocalBoard() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-    catch { return []; }
+  function loadBoard(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
   }
-  function saveLocalBoard(list) {
+  function saveBoard(list){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   }
-  function addLocalScore(name, score) {
-    const list = loadLocalBoard();
-    list.push({ name, score, at: Date.now() });
+  function addScoreToBoard(entry){
+    const list = loadBoard();
+    list.push(entry);
     list.sort((a,b) => b.score - a.score);
     const top10 = list.slice(0,10);
-    saveLocalBoard(top10);
+    saveBoard(top10);
     return top10;
   }
-  function clearBoard(){
-    localStorage.removeItem(STORAGE_KEY);
+  function clearBoard(){ localStorage.removeItem(STORAGE_KEY); }
+
+  function renderRank(list){
+    const data = Array.isArray(list) ? list : loadBoard();
+    rankList.innerHTML = "";
+    data.slice(0,10).forEach((r, i) => {
+      const li = document.createElement("li");
+      const left = document.createElement("div");
+      left.className = "rankLeft";
+      const ava = document.createElement("img");
+      ava.className = "rankAva";
+      ava.src = r.avaUrl || pickRandomAva();
+      ava.alt = "鹿鹿";
+      const name = document.createElement("div");
+      name.className = "rankName";
+      name.textContent = `${i+1}. ${r.name || "玩家"}`;
+      left.appendChild(ava);
+      left.appendChild(name);
+
+      const sc = document.createElement("div");
+      sc.className = "rankScore";
+      sc.textContent = fmt(r.score ?? 0);
+
+      li.appendChild(left);
+      li.appendChild(sc);
+      rankList.appendChild(li);
+    });
+  }
+
+  btnClearRank.addEventListener("click", () => {
+    clearBoard();
+    renderRank([]);
+    sfxBeep(330, 0.08, "square", 0.18);
+  });
+
+  document.getElementById("btnRank").addEventListener("click", () => {
+    openModal({
+      title: "排行榜",
+      sub: "隨機鹿鹿頭貼＋前 10 名",
+      text: "（本排行榜儲存在你的裝置 LocalStorage）",
+      score: currentScoreFinalForUI(),
+      showRank: true,
+      showClear: true,
+      avaUrl: pickRandomAva()
+    });
+  });
+
+  /***********************
+   * 7) 遊戲物件與規則（你指定）
+   ***********************/
+  const ITEM_DEFS = [
+    { key:"ASHUI", name:"阿水",   prob:0.35, score:+1,   grow:+1,   isPositive:true },
+    { key:"DAD",   name:"鹿爸",   prob:0.25, score:+1.5, grow:+1.5, isPositive:true },
+    { key:"MOM",   name:"花媽",   prob:0.20, score:+3,   grow:+2,   isPositive:true, isEgg:true },
+    { key:"ANGRY", name:"生氣鹿鹿",prob:0.20, score:-3,  shrink:2,  isPositive:false, isMine:true },
+  ];
+
+  function pickItemByProb(){
+    const r = Math.random();
+    let acc = 0;
+    for (const it of ITEM_DEFS){
+      acc += it.prob;
+      if (r <= acc) return it;
+    }
+    return ITEM_DEFS[0];
   }
 
   /***********************
-   * 遊戲核心
+   * 8) 遊戲狀態
    ***********************/
-  function randCell() {
-    return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
-  }
-  function cellEquals(a,b){ return a && b && a.x===b.x && a.y===b.y; }
-  function cellOccupied(c) {
-    return snake.some(s => s.x===c.x && s.y===c.y)
-      || (food && cellEquals(food,c))
-      || (egg && cellEquals(egg,c));
-  }
-  function spawnFood() {
-    let c = randCell();
-    while (cellOccupied(c)) c = randCell();
-    food = c;
-  }
-  function maybeSpawnEgg() {
-    if (egg) return;
-    const chance = 0.12;
-    if (Math.random() < chance) {
-      let c = randCell();
-      while (cellOccupied(c)) c = randCell();
-      egg = { ...c, ttl: 120 };
-      document.getElementById("egg").textContent = "已出現！";
-      beep(880, 0.06, "square", 0.10);
-      beep(1175, 0.06, "square", 0.08);
-    }
+  let running = false;
+
+  let dir = {x:1,y:0};
+  let nextDir = {x:1,y:0};
+
+  let snake = [];                 // 以 cell 座標
+  const INIT_LEN = 1;
+
+  let target = null;              // 目前地圖上的單一物件：{x,y,def}
+  let nextDef = pickItemByProb(); // 顯示下一隻（提示）
+  $nextItem.textContent = nextDef.name;
+
+  let baseTickMs = 120;           // 初始速度
+  let tickMs = baseTickMs;
+  let tickHandle = null;
+
+  let pendingGrowth = 0;          // 支援 1.5
+  let score = 0;                  // 遊戲內即時分數（尚未加結束長度加成）
+  let best = Number(localStorage.getItem(BEST_KEY) || 0);
+
+  // streak
+  let streak = 0;
+  let lastPositiveEatAt = 0;
+
+  // 花媽加速
+  const MOM_SPEED_FACTOR = 1.7;   // 你指定：1.7 倍
+  const MOM_SPEED_MS = baseTickMs / MOM_SPEED_FACTOR; // 約 70.6ms
+  const MOM_BOOST_MS = 3000;      // 你指定：3 秒
+  let momBoostUntil = 0;
+
+  $best.textContent = fmt(best);
+
+  function fmt(n){
+    const x = Number(n) || 0;
+    // 顯示 0.5、1.5 這種：最多 2 位小數，去尾零
+    return x.toFixed(2).replace(/\.?0+$/,"");
   }
 
-  function applyTickRate(newMs) {
-    tickMs = Math.max(55, Math.min(180, newMs));
-    if (running) {
+  function multiplierLevel(){
+    // 10/20/30... -> 1/2/3...
+    return Math.floor(streak / 10);
+  }
+
+  function scoreMultiplier(){
+    // x1.25, x1.5, x1.75 ...
+    const lv = multiplierLevel();
+    return 1 + lv * 0.25;
+  }
+
+  function speedFactorFromStreak(){
+    // 連吃微幅加快：每 streak +1%（上限 20%），僅吃到加分項目才會維持
+    const micro = 1 + Math.min(0.20, streak * 0.01);
+
+    // 10/20/30... 速度開始增加：+20% / +30% / +40%...
+    const lv = multiplierLevel();
+    const tier = (lv >= 1) ? (1 + (0.10 * lv + 0.10)) : 1; // lv1=1.2, lv2=1.3, lv3=1.4...
+
+    return micro * tier;
+  }
+
+  function effectiveTickMs(){
+    // 基於 streak 的基礎速度
+    const sf = speedFactorFromStreak();
+    let ms = baseTickMs / sf;
+
+    // 花媽加速覆蓋（更快）
+    if (Date.now() < momBoostUntil) ms = Math.min(ms, MOM_SPEED_MS);
+
+    // 夾限
+    ms = Math.max(55, Math.min(180, ms));
+    return ms;
+  }
+
+  function applyTickRate(){
+    const newMs = effectiveTickMs();
+    if (Math.abs(newMs - tickMs) < 0.5) return;
+    tickMs = newMs;
+    if (running){
       clearInterval(tickHandle);
       tickHandle = setInterval(tick, tickMs);
     }
   }
 
-  function updateSpeedLabel() {
-    document.getElementById("spd").textContent = (Date.now() < speedBoostUntil) ? "加速中" : "正常";
+  function updateUI(){
+    $score.textContent = fmt(score);
+    $streak.textContent = String(Math.floor(streak));
+    $mult.textContent = "x" + fmt(scoreMultiplier());
+    $len.textContent = String(snake.length);
+
+    const boosting = Date.now() < momBoostUntil;
+    const sf = speedFactorFromStreak();
+    const baseFast = (sf > 1.02);
+
+    if (boosting) $spd.textContent = "花媽加速中";
+    else if (baseFast) $spd.textContent = "連吃加速中";
+    else $spd.textContent = "正常";
   }
 
-  function resetGame() {
+  function cellOccupied(c){
+    if (snake.some(s => s.x===c.x && s.y===c.y)) return true;
+    if (target && target.x===c.x && target.y===c.y) return true;
+    return false;
+  }
+
+  function randCell(){
+    return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
+  }
+
+  function spawnTarget(){
+    const def = nextDef;
+    nextDef = pickItemByProb();
+    $nextItem.textContent = nextDef.name;
+
+    let c = randCell();
+    let tries = 0;
+    while (cellOccupied(c) && tries < 500) { c = randCell(); tries++; }
+
+    target = { x:c.x, y:c.y, def };
+  }
+
+  function resetGame(){
     running = false;
     clearInterval(tickHandle); tickHandle = null;
 
     dir = {x:1,y:0};
     nextDir = {x:1,y:0};
-    snake = [{x: Math.floor(GRID/2), y: Math.floor(GRID/2)}];
+
+    snake = [{ x: Math.floor(GRID/2), y: Math.floor(GRID/2) }];
+    pendingGrowth = 0;
+
     score = 0;
     streak = 0;
-    egg = null;
-    speedBoostUntil = 0;
-    tickMs = baseTickMs;
+    lastPositiveEatAt = 0;
+    momBoostUntil = 0;
 
-    $score.textContent = "0";
-    $streak.textContent = "0";
-    $egg.textContent = "未出現";
-    $spd.textContent = "正常";
+    target = null;
+    spawnTarget();
 
-    spawnFood();
+    applyTickRate();
+    updateUI();
     draw();
   }
 
-  function startGame() {
+  function startGame(){
     if (running) return;
     running = true;
+
     ensureAudio();
     if (audioCtx.state === "suspended") audioCtx.resume();
     if ($bgmOn.checked) startBGM();
 
+    applyTickRate();
     clearInterval(tickHandle);
     tickHandle = setInterval(tick, tickMs);
   }
 
-  function setDir(nx, ny) {
+  function setDir(nx, ny){
+    // 禁止反向
     if (snake.length > 1 && nx === -dir.x && ny === -dir.y) return;
     nextDir = {x:nx, y:ny};
   }
 
-  function gameOver() {
+  function currentScoreFinalForUI(){
+    // 你指定：結束時「每多一格身體 +1 分」
+    const bonus = Math.max(0, snake.length - INIT_LEN);
+    return score + bonus;
+  }
+
+  function gameOver(reason="撞到牆或自己"){
     running = false;
     clearInterval(tickHandle); tickHandle = null;
 
-    beep(220, 0.10, "sawtooth", 0.14);
-    beep(196, 0.12, "sawtooth", 0.12);
+    // 失敗音效
+    sfxBeep(220, 0.10, "sawtooth", 0.22);
+    sfxBeep(196, 0.12, "sawtooth", 0.18);
 
-    if (score > best) {
-      best = score;
+    const bonus = Math.max(0, snake.length - INIT_LEN);
+    const finalScore = score + bonus;
+
+    if (finalScore > best){
+      best = finalScore;
       localStorage.setItem(BEST_KEY, String(best));
-      $best.textContent = best;
+      $best.textContent = fmt(best);
     }
 
-    const localTop = addLocalScore(playerName, score);
+    // 排行榜紀錄附隨機鹿鹿頭貼
+    const avaUrl = pickRandomAva();
+    const top10 = addScoreToBoard({ name: playerName, score: finalScore, at: Date.now(), avaUrl });
 
     openModal({
-      title: `遊戲結束！你的分數：${score}`,
-      text: `鹿鹿吃到了 ${score} 個鹿粉。再來一局？`,
+      title: `遊戲結束！`,
+      sub: `原因：${reason}　｜　結束加成：身體多 ${bonus} 格 +${bonus} 分`,
+      text:
+`你的最終分數：<b>${fmt(finalScore)}</b><br/>
+（即時分數：${fmt(score)}  ＋  長度加成：${fmt(bonus)}）`,
+      score: finalScore,
       showRank: true,
-      rankDataLocal: localTop
+      showAgain: true,
+      rankData: top10,
+      avaUrl
     });
+    btnAgain.style.display = "inline-flex";
   }
 
-  function tick() {
+  btnAgain.addEventListener("click", () => {
+    closeModal();
+    resetGame();
+    startGame();
+  });
+
+  btnGo.addEventListener("click", () => {
+    closeModal();
+    resetGame();
+    startGame();
+  });
+
+  /***********************
+   * 9) 吃到物件的處理（加分/扣分/增減身體/加速）
+   ***********************/
+  function onEat(def){
+    if (def.isPositive){
+      // streak +1
+      streak += 1;
+      lastPositiveEatAt = Date.now();
+
+      // 倍率分數（只對加分項目）
+      const mult = scoreMultiplier();
+      const add = (def.score || 0) * mult;
+      score += add;
+
+      // 增長（支援 1.5）
+      pendingGrowth += (def.grow || 0);
+
+      // 音效：連吃音高變高
+      const pitch = 520 + Math.min(30, Math.floor(streak)) * 18;
+      sfxBeep(pitch, 0.06, "sine", 0.18);
+      sfxBeep(pitch * 1.18, 0.04, "triangle", 0.12);
+
+      // 花媽：短暫加速 3 秒（1.7 倍）＋明顯特殊音效
+      if (def.isEgg){
+        momBoostUntil = Date.now() + MOM_BOOST_MS;
+        sfxBeep(988, 0.07, "square", 0.20);
+        sfxBeep(1319, 0.09, "square", 0.18);
+        sfxBeep(1760, 0.11, "triangle", 0.14);
+      }
+    } else {
+      // 扣分項目：中斷連吃＋速度重置從初始計算
+      streak = 0;
+      lastPositiveEatAt = 0;
+      momBoostUntil = 0; // 地雷也把花媽加速打掉（更直覺）
+
+      score += (def.score || 0); // negative
+      // 不能低於 0 分？你沒要求，所以允許負分（想鎖 0 我也可改）
+
+      // 身體減少：每吃 1 個減少 2 個部分，最低為初始 1
+      const shrink = def.shrink || 0;
+      if (shrink > 0){
+        // 先清掉 pendingGrowth，避免「剛加長又縮短」的奇怪半段
+        pendingGrowth = 0;
+        for (let i=0; i<shrink; i++){
+          if (snake.length > INIT_LEN) snake.pop();
+        }
+      }
+
+      // 明顯地雷音效
+      sfxBeep(160, 0.09, "sawtooth", 0.22);
+      sfxBeep(120, 0.11, "sawtooth", 0.20);
+    }
+
+    applyTickRate();
+    updateUI();
+  }
+
+  /***********************
+   * 10) Tick：移動、碰撞、吃到、連吃衰減
+   ***********************/
+  function tick(){
     if (!running) return;
+
+    // 連吃衰減：超過 3 秒沒吃到加分項目才開始下降
+    if (streak > 0 && lastPositiveEatAt > 0) {
+      if (Date.now() - lastPositiveEatAt >= 3000) {
+        streak = Math.max(0, streak - 0.35);
+      }
+    }
 
     dir = nextDir;
     const head = snake[0];
     const newHead = { x: head.x + dir.x, y: head.y + dir.y };
 
-    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= GRID || newHead.y >= GRID) { gameOver(); return; }
-    if (snake.some((s,i)=> i!==0 && s.x===newHead.x && s.y===newHead.y)) { gameOver(); return; }
+    // 撞牆
+    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= GRID || newHead.y >= GRID){
+      gameOver("撞到牆");
+      return;
+    }
+
+    // 撞自己
+    if (snake.some((s,i)=> i!==0 && s.x===newHead.x && s.y===newHead.y)){
+      gameOver("撞到自己");
+      return;
+    }
 
     snake.unshift(newHead);
 
-    if (egg) {
-      egg.ttl--;
-      if (egg.ttl <= 0) {
-        egg = null;
-        $egg.textContent = "未出現";
-      }
+    // 吃到物件
+    if (target && newHead.x === target.x && newHead.y === target.y){
+      onEat(target.def);
+      target = null;
+      spawnTarget();
+    }
+
+    // 增長/維持長度：pendingGrowth >= 1 就不 pop
+    if (pendingGrowth >= 1){
+      pendingGrowth -= 1;
+      // 不 pop -> 身體變長
     } else {
-      maybeSpawnEgg();
+      // 正常前進 -> 移除尾巴
+      if (snake.length > INIT_LEN) snake.pop();
+      else snake.pop(); // INIT_LEN=1 仍要讓頭前進；但因為 unshift 了，pop 讓長度維持 1
     }
 
-    if (food && cellEquals(newHead, food)) {
-      score += 1;
-      streak += 1;
-      $score.textContent = String(score);
-      $streak.textContent = String(streak);
-
-      const pitch = 520 + Math.min(10, streak) * 40;
-      beep(pitch, 0.06, "sine", 0.12);
-      beep(pitch * 1.25, 0.04, "triangle", 0.08);
-
-      applyTickRate(baseTickMs - Math.min(35, streak * 2));
-      spawnFood();
-    } else {
-      snake.pop();
-      streak = Math.max(0, streak - 0.35);
-      $streak.textContent = String(Math.floor(streak));
-    }
-
-    if (egg && cellEquals(newHead, egg)) {
-      score += 7;
-      $score.textContent = String(score);
-
-      speedBoostUntil = Date.now() + 3500;
-      applyTickRate(70);
-
-      beep(988, 0.06, "square", 0.12);
-      beep(1319, 0.08, "square", 0.10);
-      beep(1760, 0.10, "triangle", 0.08);
-
-      egg = null;
-      $egg.textContent = "已吃到！";
-      setTimeout(() => {
-        if (!$egg.textContent.includes("未出現")) $egg.textContent = "未出現";
-      }, 900);
-    }
-
-    if (Date.now() >= speedBoostUntil && tickMs <= 80) {
-      applyTickRate(baseTickMs - Math.min(35, Math.floor(streak) * 2));
-    }
-
-    updateSpeedLabel();
+    applyTickRate();
+    updateUI();
     draw();
   }
 
   /***********************
-   * 繪圖：鹿鹿蛇 / 鹿粉 / 彩蛋
+   * 11) 繪圖：格線 + 蛇身 + 蛇頭(圖片) + 物件(圖片)
    ***********************/
+  function drawGridGlow(){
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    for(let i=1;i<GRID;i++){
+      ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
     ctx.moveTo(x+r,y);
@@ -617,27 +1020,14 @@
     ctx.closePath();
   }
 
-  function drawGridGlow() {
+  function drawBody(seg, idx){
+    const x = seg.x * CELL, y = seg.y * CELL;
     ctx.save();
-    ctx.globalAlpha = 0.10;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    for(let i=1;i<GRID;i++){
-      ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawLuluSegment(c, isHead=false, dirNow=dir) {
-    const x = c.x * CELL, y = c.y * CELL;
-
-    ctx.save();
-    ctx.fillStyle = isHead ? "#ffe29a" : "#ffd98a";
-    roundRect(x+2, y+2, CELL-4, CELL-4, 8);
+    ctx.fillStyle = (idx % 2 === 0) ? "#ffd98a" : "#ffe29a";
+    roundRect(x+2,y+2,CELL-4,CELL-4,8);
     ctx.fill();
 
-    // 明顯斑點
+    // 斑點（明顯）
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#d0892d";
     [[x+6,y+7],[x+12,y+10],[x+9,y+14]].forEach(([sx,sy])=>{
@@ -645,106 +1035,111 @@
       ctx.ellipse(sx, sy, 2.7, 2.2, 0, 0, Math.PI*2);
       ctx.fill();
     });
+    ctx.restore();
+  }
 
-    if (isHead) {
-      let ex1=x+11, ey1=y+10, ex2=x+15, ey2=y+10;
-      if (dirNow.x===1){ ex1=x+13; ex2=x+16; ey1=y+9;  ey2=y+13; }
-      if (dirNow.x===-1){ex1=x+8;  ex2=x+11; ey1=y+9;  ey2=y+13; }
-      if (dirNow.y===1){ ex1=x+9;  ex2=x+13; ey1=y+13; ey2=y+14; }
-      if (dirNow.y===-1){ex1=x+9;  ex2=x+13; ey1=y+8;  ey2=y+9; }
+  function drawHead(seg){
+    const img = SPR.HEAD;
+    const x = seg.x * CELL, y = seg.y * CELL;
 
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#1b1b1b";
-      ctx.beginPath(); ctx.arc(ex1, ey1, 2.2, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(ex2, ey2, 2.2, 0, Math.PI*2); ctx.fill();
+    // 先畫底（避免圖片透明造成破洞）
+    ctx.save();
+    ctx.fillStyle = "#ffe29a";
+    roundRect(x+2,y+2,CELL-4,CELL-4,8);
+    ctx.fill();
+    ctx.restore();
 
-      // 紅角角
-      ctx.fillStyle = "#ff6b6b";
-      ctx.globalAlpha = 0.9;
-      const horn = (hx, hy) => { ctx.beginPath(); ctx.roundRect(hx, hy, 4, 7, 2); ctx.fill(); };
-      horn(x+6, y+3); horn(x+14, y+3);
+    if (!img){
+      // fallback：沒載入到就用簡化頭
+      ctx.save();
+      ctx.fillStyle="#111";
+      ctx.beginPath(); ctx.arc(x+14,y+10,2.2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+18,y+13,2.2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      return;
+    }
 
-      // 微笑
-      ctx.globalAlpha = 0.8;
-      ctx.strokeStyle = "#6b3b18";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(x+12, y+14, 4, 0, Math.PI); ctx.stroke();
+    // 依方向旋轉圖片
+    let ang = 0;
+    if (dir.x === 1) ang = 0;
+    if (dir.x === -1) ang = Math.PI;
+    if (dir.y === 1) ang = Math.PI/2;
+    if (dir.y === -1) ang = -Math.PI/2;
+
+    const cx = x + CELL/2;
+    const cy = y + CELL/2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(ang);
+    const size = CELL * 0.92;
+    ctx.drawImage(img, -size/2, -size/2, size, size);
+    ctx.restore();
+  }
+
+  function drawTarget(t){
+    if (!t) return;
+    const def = t.def;
+    const img = SPR[def.key] || null;
+    const x = t.x * CELL, y = t.y * CELL;
+
+    ctx.save();
+
+    // 外光（讓彩蛋/地雷更明顯）
+    if (def.isEgg){
+      ctx.shadowColor = "rgba(255,200,0,.5)";
+      ctx.shadowBlur = 16;
+    } else if (def.isMine){
+      ctx.shadowColor = "rgba(255,60,60,.5)";
+      ctx.shadowBlur = 16;
+    } else {
+      ctx.shadowColor = "rgba(255,120,190,.35)";
+      ctx.shadowBlur = 10;
+    }
+
+    if (img){
+      const pad = CELL * 0.08;
+      ctx.drawImage(img, x+pad, y+pad, CELL-2*pad, CELL-2*pad);
+    } else {
+      // fallback：用球
+      ctx.fillStyle = def.isMine ? "#ff4d4f" : (def.isEgg ? "#ffd24d" : "#ff5aa5");
+      ctx.beginPath();
+      ctx.arc(x+CELL/2, y+CELL/2, CELL*0.34, 0, Math.PI*2);
+      ctx.fill();
     }
 
     ctx.restore();
   }
 
-  function drawFanFood(c) {
-    const cx = c.x * CELL + CELL/2;
-    const cy = c.y * CELL + CELL/2;
-
-    ctx.save();
-    ctx.shadowColor = "rgba(255,120,190,.45)";
-    ctx.shadowBlur = 10;
-
-    ctx.fillStyle = "#ff5aa5";
-    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.32, 0, Math.PI*2); ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(255,255,255,.85)";
-    ctx.beginPath(); ctx.arc(cx-4, cy-4, CELL*0.10, 0, Math.PI*2); ctx.fill();
-
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(cx+5, cy-8, 2, 6);
-    ctx.fillRect(cx+3, cy-6, 6, 2);
-    ctx.restore();
-  }
-
-  function drawEgg(c) {
-    const cx = c.x * CELL + CELL/2;
-    const cy = c.y * CELL + CELL/2;
-
-    ctx.save();
-    ctx.shadowColor = "rgba(255,200,0,.45)";
-    ctx.shadowBlur = 14;
-
-    ctx.fillStyle = "#ffd24d";
-    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.34, 0, Math.PI*2); ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#111";
-    ctx.beginPath(); ctx.arc(cx, cy+2, 2.2, 0, Math.PI*2); ctx.fill();
-
-    ctx.strokeStyle = "rgba(255,255,255,.9)";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.22, -0.4, 0.8); ctx.stroke();
-    ctx.restore();
-  }
-
-  function draw() {
+  function draw(){
     ctx.clearRect(0,0,cv.width,cv.height);
     ctx.fillStyle = "#0b0b0f";
     ctx.fillRect(0,0,cv.width,cv.height);
 
     drawGridGlow();
 
-    if (food) drawFanFood(food);
-    if (egg) drawEgg(egg);
+    // target
+    drawTarget(target);
 
-    for (let i=snake.length-1; i>=0; i--) drawLuluSegment(snake[i], i===0);
+    // body then head
+    for (let i=snake.length-1; i>=1; i--) drawBody(snake[i], i);
+    drawHead(snake[0]);
 
-    if (!running) {
+    if (!running){
       ctx.save();
       ctx.globalAlpha = 0.92;
       ctx.fillStyle = "rgba(255,255,255,.85)";
       ctx.font = "bold 18px system-ui, -apple-system";
       ctx.textAlign = "center";
-      ctx.fillText("按「開始」或滑動開始移動", cv.width/2, cv.height/2 - 6);
+      ctx.fillText("按「開始」或滑動/方向鍵開始", cv.width/2, cv.height/2 - 10);
       ctx.font = "13px system-ui, -apple-system";
       ctx.fillStyle = "rgba(255,255,255,.7)";
-      ctx.fillText("吃鹿粉 +1，彩蛋 +7 & 加速", cv.width/2, cv.height/2 + 18);
+      ctx.fillText("阿水/鹿爸/花媽加分，生氣鹿鹿扣分縮短", cv.width/2, cv.height/2 + 14);
       ctx.restore();
     }
   }
 
   /***********************
-   * 輸入：鍵盤 / 觸控滑動 / 按鈕
+   * 12) 輸入：鍵盤 / 觸控滑動 / 按鈕
    ***********************/
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") setDir(0,-1);
@@ -754,7 +1149,7 @@
     if (!running && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) startGame();
   });
 
-  function bindPad(id, nx, ny) {
+  function bindPad(id, nx, ny){
     const el = document.getElementById(id);
     el.addEventListener("pointerdown", (ev) => {
       ev.preventDefault();
@@ -788,80 +1183,73 @@
   });
 
   /***********************
-   * Modal / 排行榜
-   ***********************/
-  const mask = document.getElementById("mask");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalText = document.getElementById("modalText");
-  const btnClose = document.getElementById("btnClose");
-  const btnAgain = document.getElementById("btnAgain");
-  const btnClearRank = document.getElementById("btnClearRank");
-  const rankBox = document.getElementById("rankBox");
-  const rankList = document.getElementById("rankList");
-
-  function renderRank(list) {
-    const data = Array.isArray(list) ? list : loadLocalBoard();
-    rankList.innerHTML = "";
-    data.slice(0,10).forEach((r, i) => {
-      const li = document.createElement("li");
-      const left = document.createElement("span");
-      const right = document.createElement("b");
-      left.textContent = `${i+1}. ${r.name || "玩家"}`;
-      right.textContent = String(r.score ?? 0);
-      li.appendChild(left);
-      li.appendChild(right);
-      rankList.appendChild(li);
-    });
-  }
-
-  function openModal({title, text, showRank=false, rankDataLocal=null, showClear=false}) {
-    modalTitle.textContent = title || "提示";
-    modalText.innerHTML = (text || "").replace(/\n/g,"<br/>");
-    btnAgain.style.display = title?.includes("遊戲結束") ? "inline-flex" : "none";
-    btnClearRank.style.display = showClear ? "inline-flex" : "none";
-
-    rankBox.style.display = showRank ? "block" : "none";
-    if (showRank) renderRank(rankDataLocal);
-
-    mask.style.display = "flex";
-  }
-  function closeModal(){ mask.style.display = "none"; }
-
-  btnClose.addEventListener("click", closeModal);
-  btnAgain.addEventListener("click", () => { closeModal(); resetGame(); startGame(); });
-
-  btnClearRank.addEventListener("click", () => {
-    clearBoard();
-    renderRank([]);
-    beep(330, 0.08, "square", 0.12);
-  });
-
-  document.getElementById("btnHow").addEventListener("click", () => {
-    openModal({
-      title: "玩法說明",
-      text:
-`你是鹿鹿，去吃「鹿粉」讓身體變長！
-• 吃到鹿粉：+1 分（連吃會稍微加速）
-• 彩蛋物件：+7 分＋短暫加速
-• 撞牆 / 撞到自己：遊戲結束
-排行榜：存本機 LocalStorage（免後端）。`,
-      showRank: true,
-      rankDataLocal: loadLocalBoard(),
-      showClear: true
-    });
-  });
-
-  /***********************
-   * 開始按鈕
+   * 13) 按鈕：開始 / 玩法
    ***********************/
   document.getElementById("btnStart").addEventListener("click", () => {
     if (!snake.length) resetGame();
     startGame();
   });
 
-  // Init
-  resetGame();
-  draw();
+  document.getElementById("btnHow").addEventListener("click", () => {
+    const rule =
+`【出現機率 / 分數 / 身體變化】
+• 阿水 35%：+1 分，身體 +1
+• 鹿爸 25%：+1.5 分，身體 +1.5
+• 花媽 20%（彩蛋）：+3 分，身體 +2，速度 1.7 倍加速 3 秒（特殊音效）
+• 生氣鹿鹿 20%（地雷）：-3 分，身體 -2（最低不小於初始長度 1），並中斷連吃、速度重置
+
+【連吃 streak】
+1) 只要吃到「加分項目」就 streak +1；吃到扣分項目 = 中斷（歸 0）
+2) 連續吃到加分項目才會持續微幅加速 + 音效音高上升
+3) 超過 3 秒沒吃到加分項目，streak 會緩慢下降（每 tick 約 -0.35）
+4) streak 達 10/20/30...：
+   • 倍率 x1.25 / x1.5 / x1.75 ...（只乘在「加分項目」得分）
+   • 速度額外 +20% / +30% / +40% ...
+
+【結束加成】
+每多一格身體 +1 分（以初始長度 1 為基準）`;
+
+    openModal({
+      title: "玩法與加減分說明",
+      sub: "吃鹿粉（角色）成長！避開地雷！",
+      text: rule,
+      score: currentScoreFinalForUI(),
+      showRank: false,
+      showClear: false,
+      avaUrl: pickRandomAva()
+    });
+  });
+
+  /***********************
+   * 14) 開始前遮罩（你要求）
+   ***********************/
+  function showStartIntro(){
+    openModal({
+      title: "準備開始！",
+      sub: "阿鹿鹿文創-貪食鹿(吃鹿粉)",
+      text:
+`滑動或方向鍵控制鹿鹿移動。<br/>
+地圖會隨機出現「阿水/鹿爸/花媽/生氣鹿鹿」。<br/>
+吃到加分項目會連吃加速、連吃達 10/20/30... 會有倍率與額外速度。<br/>
+小提醒：花媽是彩蛋（+3 分、身體 +2、1.7 倍加速 3 秒）。<br/>
+吃到生氣鹿鹿會扣分並縮短（最低不小於 1）。`,
+      score: 0,
+      showGo: true,
+      showRank: false,
+      showClear: false,
+      avaUrl: pickRandomAva()
+    });
+  }
+
+  /***********************
+   * 15) 初始化
+   ***********************/
+  preload().finally(() => {
+    resetGame();
+    draw();
+    showStartIntro();
+  });
+
 })();
 </script>
 </body>
