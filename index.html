@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>鹿鹿貪食蛇｜鹿粉撈撈祭</title>
+
+  <style>
+    :root{
+      --bg1:#ffd6e7;
+      --bg2:#fff4f9;
+      --card:#ffffffcc;
+      --text:#111;
+      --shadow: rgba(0,0,0,.12);
+      --safeT: env(safe-area-inset-top);
+      --safeB: env(safe-area-inset-bottom);
+    }
+    html,body{height:100%; margin:0;}
+    body{
+      font-family: system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      background: linear-gradient(180deg,var(--bg1),var(--bg2));
+      color: var(--text);
+      display:flex;
+      justify-content:center;
+    }
+    .wrap{
+      width:min(520px, 100%);
+      padding: calc(12px + var(--safeT)) 12px calc(12px + var(--safeB));
+      box-sizing:border-box;
+    }
+    .topbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-radius:16px;
+      background: var(--card);
+      box-shadow: 0 8px 20px var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .title{display:flex; flex-direction:column; gap:4px;}
+    .title b{font-size:16px;}
+    .title small{opacity:.75;}
+    .pill{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;}
+    .btn{
+      border:0;
+      padding:10px 12px;
+      border-radius:14px;
+      background:#111;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow: 0 8px 16px rgba(0,0,0,.12);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn.secondary{
+      background:#fff;
+      color:#111;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:none;
+    }
+    .row{display:flex; gap:12px; margin-top:12px; align-items:stretch; flex-wrap:wrap;}
+    .panel{
+      flex:1 1 220px;
+      padding:12px;
+      border-radius:16px;
+      background: var(--card);
+      box-shadow: 0 8px 20px var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:8px 10px;
+      align-items:center;
+      font-size:14px;
+    }
+    .kv .v{font-weight:800;}
+    .hint{font-size:12px; opacity:.75; margin-top:8px; line-height:1.4;}
+    .gamebox{
+      margin-top:12px;
+      padding:12px;
+      border-radius:20px;
+      background: rgba(255,255,255,.68);
+      box-shadow: 0 10px 26px rgba(0,0,0,.12);
+    }
+    canvas{
+      width:100%;
+      height:auto;
+      border-radius:16px;
+      background:#0b0b0f;
+      touch-action:none;
+      display:block;
+    }
+    .controls{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .pad{
+      padding:12px 10px;
+      border-radius:16px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#fff;
+      font-weight:800;
+      text-align:center;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pad:active{transform: translateY(1px);}
+    .footer{
+      margin-top:12px;
+      font-size:12px;
+      opacity:.7;
+      text-align:center;
+      line-height:1.45;
+    }
+    .modalMask{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+      z-index:50;
+    }
+    .modal{
+      width:min(520px, 100%);
+      border-radius:18px;
+      background:#fff;
+      padding:14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .modal h3{margin:6px 0 8px; font-size:16px;}
+    .modal p{margin:0 0 10px; font-size:13px; opacity:.85; line-height:1.5;}
+    .modal .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;}
+    .rank{
+      margin-top:10px;
+      border-top:1px dashed rgba(0,0,0,.15);
+      padding-top:10px;
+      font-size:13px;
+    }
+    .rank ol{margin:8px 0 0 18px; padding:0;}
+    .rank li{margin:6px 0; display:flex; justify-content:space-between; gap:10px;}
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.12);
+      font-size:12px;
+      font-weight:800;
+    }
+    .toggle{
+      display:flex; align-items:center; gap:8px; justify-content:flex-end;
+      font-size:12px; font-weight:800;
+    }
+    .toggle input{transform: scale(1.15);}
+
+    .namebox{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .namebox input{
+      flex: 1 1 140px;
+      border:1px solid rgba(0,0,0,.15);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:800;
+      outline:none;
+      background:#fff;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="title">
+      <b>🦒 鹿鹿貪食蛇（吃鹿粉）</b>
+      <small>玩家：<span id="playerName">Guest</span></small>
+    </div>
+    <div class="pill">
+      <span class="tag">分數 <span id="score">0</span></span>
+      <span class="tag">最高 <span id="best">0</span></span>
+      <button class="btn secondary" id="btnHow">玩法</button>
+      <button class="btn" id="btnStart">開始</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="kv">
+        <div>速度</div><div class="v" id="spd">正常</div>
+        <div>連吃</div><div class="v" id="streak">0</div>
+        <div>彩蛋</div><div class="v" id="egg">未出現</div>
+      </div>
+      <div class="hint">
+        手機：滑動畫面或按下方方向鍵<br/>
+        電腦：方向鍵控制<br/>
+        彩蛋：出現後吃到會 <b>加大分＋短暫加速</b>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="toggle">
+        <label><input type="checkbox" id="bgmOn" checked> BGM</label>
+        <label><input type="checkbox" id="sfxOn" checked> 音效</label>
+      </div>
+
+      <div class="namebox">
+        <input id="nameInput" maxlength="12" placeholder="輸入暱稱（可選）" />
+        <button class="btn secondary" id="btnSetName">套用</button>
+      </div>
+
+      <div class="hint">
+        排行榜使用 <b>LocalStorage</b>（免後端）<br/>
+        若不輸入暱稱，預設顯示 Guest。
+      </div>
+    </div>
+  </div>
+
+  <div class="gamebox">
+    <canvas id="cv" width="480" height="480"></canvas>
+
+    <div class="controls">
+      <div class="pad" id="left">⬅️</div>
+      <div class="pad" id="up">⬆️</div>
+      <div class="pad" id="right">➡️</div>
+      <div class="pad" id="down" style="grid-column: 2 / 3;">⬇️</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    直接上傳到任何靜態網站，貼網址到 LINE 點擊即可玩。<br/>
+    ※ LINE/iOS 需「第一次互動」後才能播聲音（已處理）。
+  </div>
+</div>
+
+<div class="modalMask" id="mask">
+  <div class="modal">
+    <h3 id="modalTitle">玩法</h3>
+    <p id="modalText">
+      你是鹿鹿，去吃「鹿粉」讓身體變長！<br/>
+      偶爾會出現彩蛋物件，吃到會加更多分並短暫加速。<br/>
+      撞牆或撞到自己就結束，會自動寫入排行榜。
+    </p>
+    <div class="rank" id="rankBox" style="display:none;">
+      <b>🏆 排行榜（前 10 名）</b>
+      <ol id="rankList"></ol>
+    </div>
+    <div class="actions">
+      <button class="btn secondary" id="btnClose">關閉</button>
+      <button class="btn" id="btnAgain" style="display:none;">再玩一次</button>
+      <button class="btn secondary" id="btnClearRank" style="display:none;">清空排行榜</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "lulu_snake_leaderboard_v1";
+  const BEST_KEY = "lulu_snake_best_v1";
+  const NAME_KEY = "lulu_snake_name_v1";
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+
+  const GRID = 24;
+  const CELL = cv.width / GRID;
+
+  let running = false;
+  let dir = {x: 1, y: 0};
+  let nextDir = {x: 1, y: 0};
+  let snake = [];
+  let food = null;
+  let egg = null;
+
+  let score = 0;
+  let best = Number(localStorage.getItem(BEST_KEY) || 0);
+  let streak = 0;
+
+  let baseTickMs = 120;
+  let tickMs = baseTickMs;
+  let tickHandle = null;
+  let speedBoostUntil = 0;
+
+  // 玩家暱稱（不需要 LIFF）
+  let playerName = localStorage.getItem(NAME_KEY) || "Guest";
+  const $playerName = document.getElementById("playerName");
+  const $nameInput = document.getElementById("nameInput");
+  $playerName.textContent = playerName;
+  $nameInput.value = playerName === "Guest" ? "" : playerName;
+
+  document.getElementById("btnSetName").addEventListener("click", () => {
+    const v = ($nameInput.value || "").trim().slice(0,12);
+    playerName = v || "Guest";
+    localStorage.setItem(NAME_KEY, playerName);
+    $playerName.textContent = playerName;
+    beep(660, 0.06, "triangle", 0.10);
+  });
+
+  const $score = document.getElementById("score");
+  const $best = document.getElementById("best");
+  const $spd = document.getElementById("spd");
+  const $streak = document.getElementById("streak");
+  const $egg = document.getElementById("egg");
+  $best.textContent = best;
+
+  /***********************
+   * WebAudio：BGM / SFX（無外部音檔）
+   ***********************/
+  const $bgmOn = document.getElementById("bgmOn");
+  const $sfxOn = document.getElementById("sfxOn");
+
+  let audioCtx = null;
+  let master = null;
+  let bgmGain = null;
+  let bgmOscs = [];
+  let bgmTimer = null;
+
+  function ensureAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    master = audioCtx.createGain();
+    master.gain.value = 0.9;
+    master.connect(audioCtx.destination);
+
+    bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = 0.12;
+    bgmGain.connect(master);
+  }
+
+  function beep(freq, dur=0.08, type="sine", vol=0.12) {
+    if (!$sfxOn.checked) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g);
+    g.connect(master);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+
+  function startBGM() {
+    if (!$bgmOn.checked) return;
+    ensureAudio();
+    stopBGM();
+
+    const seq = [
+      [392, 494, 587],
+      [440, 554, 659],
+      [349, 440, 523],
+      [392, 494, 587],
+    ];
+    let step = 0;
+
+    bgmTimer = setInterval(() => {
+      if (!$bgmOn.checked) return;
+
+      const chord = seq[step % seq.length];
+      step++;
+
+      chord.forEach((f, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "triangle";
+        o.frequency.value = f * (i === 0 ? 0.5 : 1);
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(bgmGain);
+        const t = audioCtx.currentTime + i * 0.02;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        o.start(t);
+        o.stop(t + 0.22);
+        bgmOscs.push(o);
+      });
+    }, 520);
+  }
+
+  function stopBGM() {
+    if (bgmTimer) clearInterval(bgmTimer);
+    bgmTimer = null;
+    bgmOscs = [];
+  }
+
+  function unlockAudioOnFirstInteraction() {
+    ensureAudio();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    startBGM();
+    window.removeEventListener("pointerdown", unlockAudioOnFirstInteraction);
+    window.removeEventListener("touchstart", unlockAudioOnFirstInteraction);
+    window.removeEventListener("keydown", unlockAudioOnFirstInteraction);
+  }
+  window.addEventListener("pointerdown", unlockAudioOnFirstInteraction, {once:false});
+  window.addEventListener("touchstart", unlockAudioOnFirstInteraction, {once:false});
+  window.addEventListener("keydown", unlockAudioOnFirstInteraction, {once:false});
+
+  $bgmOn.addEventListener("change", () => $bgmOn.checked ? startBGM() : stopBGM());
+
+  /***********************
+   * 排行榜：LocalStorage
+   ***********************/
+  function loadLocalBoard() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function saveLocalBoard(list) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+  function addLocalScore(name, score) {
+    const list = loadLocalBoard();
+    list.push({ name, score, at: Date.now() });
+    list.sort((a,b) => b.score - a.score);
+    const top10 = list.slice(0,10);
+    saveLocalBoard(top10);
+    return top10;
+  }
+  function clearBoard(){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  /***********************
+   * 遊戲核心
+   ***********************/
+  function randCell() {
+    return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
+  }
+  function cellEquals(a,b){ return a && b && a.x===b.x && a.y===b.y; }
+  function cellOccupied(c) {
+    return snake.some(s => s.x===c.x && s.y===c.y)
+      || (food && cellEquals(food,c))
+      || (egg && cellEquals(egg,c));
+  }
+  function spawnFood() {
+    let c = randCell();
+    while (cellOccupied(c)) c = randCell();
+    food = c;
+  }
+  function maybeSpawnEgg() {
+    if (egg) return;
+    const chance = 0.12;
+    if (Math.random() < chance) {
+      let c = randCell();
+      while (cellOccupied(c)) c = randCell();
+      egg = { ...c, ttl: 120 };
+      document.getElementById("egg").textContent = "已出現！";
+      beep(880, 0.06, "square", 0.10);
+      beep(1175, 0.06, "square", 0.08);
+    }
+  }
+
+  function applyTickRate(newMs) {
+    tickMs = Math.max(55, Math.min(180, newMs));
+    if (running) {
+      clearInterval(tickHandle);
+      tickHandle = setInterval(tick, tickMs);
+    }
+  }
+
+  function updateSpeedLabel() {
+    document.getElementById("spd").textContent = (Date.now() < speedBoostUntil) ? "加速中" : "正常";
+  }
+
+  function resetGame() {
+    running = false;
+    clearInterval(tickHandle); tickHandle = null;
+
+    dir = {x:1,y:0};
+    nextDir = {x:1,y:0};
+    snake = [{x: Math.floor(GRID/2), y: Math.floor(GRID/2)}];
+    score = 0;
+    streak = 0;
+    egg = null;
+    speedBoostUntil = 0;
+    tickMs = baseTickMs;
+
+    $score.textContent = "0";
+    $streak.textContent = "0";
+    $egg.textContent = "未出現";
+    $spd.textContent = "正常";
+
+    spawnFood();
+    draw();
+  }
+
+  function startGame() {
+    if (running) return;
+    running = true;
+    ensureAudio();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    if ($bgmOn.checked) startBGM();
+
+    clearInterval(tickHandle);
+    tickHandle = setInterval(tick, tickMs);
+  }
+
+  function setDir(nx, ny) {
+    if (snake.length > 1 && nx === -dir.x && ny === -dir.y) return;
+    nextDir = {x:nx, y:ny};
+  }
+
+  function gameOver() {
+    running = false;
+    clearInterval(tickHandle); tickHandle = null;
+
+    beep(220, 0.10, "sawtooth", 0.14);
+    beep(196, 0.12, "sawtooth", 0.12);
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem(BEST_KEY, String(best));
+      $best.textContent = best;
+    }
+
+    const localTop = addLocalScore(playerName, score);
+
+    openModal({
+      title: `遊戲結束！你的分數：${score}`,
+      text: `鹿鹿吃到了 ${score} 個鹿粉。再來一局？`,
+      showRank: true,
+      rankDataLocal: localTop
+    });
+  }
+
+  function tick() {
+    if (!running) return;
+
+    dir = nextDir;
+    const head = snake[0];
+    const newHead = { x: head.x + dir.x, y: head.y + dir.y };
+
+    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= GRID || newHead.y >= GRID) { gameOver(); return; }
+    if (snake.some((s,i)=> i!==0 && s.x===newHead.x && s.y===newHead.y)) { gameOver(); return; }
+
+    snake.unshift(newHead);
+
+    if (egg) {
+      egg.ttl--;
+      if (egg.ttl <= 0) {
+        egg = null;
+        $egg.textContent = "未出現";
+      }
+    } else {
+      maybeSpawnEgg();
+    }
+
+    if (food && cellEquals(newHead, food)) {
+      score += 1;
+      streak += 1;
+      $score.textContent = String(score);
+      $streak.textContent = String(streak);
+
+      const pitch = 520 + Math.min(10, streak) * 40;
+      beep(pitch, 0.06, "sine", 0.12);
+      beep(pitch * 1.25, 0.04, "triangle", 0.08);
+
+      applyTickRate(baseTickMs - Math.min(35, streak * 2));
+      spawnFood();
+    } else {
+      snake.pop();
+      streak = Math.max(0, streak - 0.35);
+      $streak.textContent = String(Math.floor(streak));
+    }
+
+    if (egg && cellEquals(newHead, egg)) {
+      score += 7;
+      $score.textContent = String(score);
+
+      speedBoostUntil = Date.now() + 3500;
+      applyTickRate(70);
+
+      beep(988, 0.06, "square", 0.12);
+      beep(1319, 0.08, "square", 0.10);
+      beep(1760, 0.10, "triangle", 0.08);
+
+      egg = null;
+      $egg.textContent = "已吃到！";
+      setTimeout(() => {
+        if (!$egg.textContent.includes("未出現")) $egg.textContent = "未出現";
+      }, 900);
+    }
+
+    if (Date.now() >= speedBoostUntil && tickMs <= 80) {
+      applyTickRate(baseTickMs - Math.min(35, Math.floor(streak) * 2));
+    }
+
+    updateSpeedLabel();
+    draw();
+  }
+
+  /***********************
+   * 繪圖：鹿鹿蛇 / 鹿粉 / 彩蛋
+   ***********************/
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function drawGridGlow() {
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    for(let i=1;i<GRID;i++){
+      ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLuluSegment(c, isHead=false, dirNow=dir) {
+    const x = c.x * CELL, y = c.y * CELL;
+
+    ctx.save();
+    ctx.fillStyle = isHead ? "#ffe29a" : "#ffd98a";
+    roundRect(x+2, y+2, CELL-4, CELL-4, 8);
+    ctx.fill();
+
+    // 明顯斑點
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#d0892d";
+    [[x+6,y+7],[x+12,y+10],[x+9,y+14]].forEach(([sx,sy])=>{
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 2.7, 2.2, 0, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    if (isHead) {
+      let ex1=x+11, ey1=y+10, ex2=x+15, ey2=y+10;
+      if (dirNow.x===1){ ex1=x+13; ex2=x+16; ey1=y+9;  ey2=y+13; }
+      if (dirNow.x===-1){ex1=x+8;  ex2=x+11; ey1=y+9;  ey2=y+13; }
+      if (dirNow.y===1){ ex1=x+9;  ex2=x+13; ey1=y+13; ey2=y+14; }
+      if (dirNow.y===-1){ex1=x+9;  ex2=x+13; ey1=y+8;  ey2=y+9; }
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#1b1b1b";
+      ctx.beginPath(); ctx.arc(ex1, ey1, 2.2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ex2, ey2, 2.2, 0, Math.PI*2); ctx.fill();
+
+      // 紅角角
+      ctx.fillStyle = "#ff6b6b";
+      ctx.globalAlpha = 0.9;
+      const horn = (hx, hy) => { ctx.beginPath(); ctx.roundRect(hx, hy, 4, 7, 2); ctx.fill(); };
+      horn(x+6, y+3); horn(x+14, y+3);
+
+      // 微笑
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = "#6b3b18";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x+12, y+14, 4, 0, Math.PI); ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawFanFood(c) {
+    const cx = c.x * CELL + CELL/2;
+    const cy = c.y * CELL + CELL/2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(255,120,190,.45)";
+    ctx.shadowBlur = 10;
+
+    ctx.fillStyle = "#ff5aa5";
+    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.32, 0, Math.PI*2); ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.beginPath(); ctx.arc(cx-4, cy-4, CELL*0.10, 0, Math.PI*2); ctx.fill();
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(cx+5, cy-8, 2, 6);
+    ctx.fillRect(cx+3, cy-6, 6, 2);
+    ctx.restore();
+  }
+
+  function drawEgg(c) {
+    const cx = c.x * CELL + CELL/2;
+    const cy = c.y * CELL + CELL/2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(255,200,0,.45)";
+    ctx.shadowBlur = 14;
+
+    ctx.fillStyle = "#ffd24d";
+    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.34, 0, Math.PI*2); ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#111";
+    ctx.beginPath(); ctx.arc(cx, cy+2, 2.2, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.22, -0.4, 0.8); ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = "#0b0b0f";
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    drawGridGlow();
+
+    if (food) drawFanFood(food);
+    if (egg) drawEgg(egg);
+
+    for (let i=snake.length-1; i>=0; i--) drawLuluSegment(snake[i], i===0);
+
+    if (!running) {
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      ctx.font = "bold 18px system-ui, -apple-system";
+      ctx.textAlign = "center";
+      ctx.fillText("按「開始」或滑動開始移動", cv.width/2, cv.height/2 - 6);
+      ctx.font = "13px system-ui, -apple-system";
+      ctx.fillStyle = "rgba(255,255,255,.7)";
+      ctx.fillText("吃鹿粉 +1，彩蛋 +7 & 加速", cv.width/2, cv.height/2 + 18);
+      ctx.restore();
+    }
+  }
+
+  /***********************
+   * 輸入：鍵盤 / 觸控滑動 / 按鈕
+   ***********************/
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") setDir(0,-1);
+    if (e.key === "ArrowDown") setDir(0,1);
+    if (e.key === "ArrowLeft") setDir(-1,0);
+    if (e.key === "ArrowRight") setDir(1,0);
+    if (!running && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) startGame();
+  });
+
+  function bindPad(id, nx, ny) {
+    const el = document.getElementById(id);
+    el.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      setDir(nx, ny);
+      if (!running) startGame();
+    });
+  }
+  bindPad("up", 0, -1);
+  bindPad("down", 0, 1);
+  bindPad("left", -1, 0);
+  bindPad("right", 1, 0);
+
+  let sx=0, sy=0, st=0;
+  cv.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY; st = Date.now();
+  }, {passive:true});
+
+  cv.addEventListener("touchend", (e) => {
+    const t = e.changedTouches[0];
+    const dxT = t.clientX - sx;
+    const dyT = t.clientY - sy;
+    const dt = Date.now() - st;
+    if (dt > 500) return;
+    if (Math.abs(dxT) < 18 && Math.abs(dyT) < 18) return;
+
+    if (Math.abs(dxT) > Math.abs(dyT)) setDir(dxT > 0 ? 1 : -1, 0);
+    else setDir(0, dyT > 0 ? 1 : -1);
+
+    if (!running) startGame();
+  });
+
+  /***********************
+   * Modal / 排行榜
+   ***********************/
+  const mask = document.getElementById("mask");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalText = document.getElementById("modalText");
+  const btnClose = document.getElementById("btnClose");
+  const btnAgain = document.getElementById("btnAgain");
+  const btnClearRank = document.getElementById("btnClearRank");
+  const rankBox = document.getElementById("rankBox");
+  const rankList = document.getElementById("rankList");
+
+  function renderRank(list) {
+    const data = Array.isArray(list) ? list : loadLocalBoard();
+    rankList.innerHTML = "";
+    data.slice(0,10).forEach((r, i) => {
+      const li = document.createElement("li");
+      const left = document.createElement("span");
+      const right = document.createElement("b");
+      left.textContent = `${i+1}. ${r.name || "玩家"}`;
+      right.textContent = String(r.score ?? 0);
+      li.appendChild(left);
+      li.appendChild(right);
+      rankList.appendChild(li);
+    });
+  }
+
+  function openModal({title, text, showRank=false, rankDataLocal=null, showClear=false}) {
+    modalTitle.textContent = title || "提示";
+    modalText.innerHTML = (text || "").replace(/\n/g,"<br/>");
+    btnAgain.style.display = title?.includes("遊戲結束") ? "inline-flex" : "none";
+    btnClearRank.style.display = showClear ? "inline-flex" : "none";
+
+    rankBox.style.display = showRank ? "block" : "none";
+    if (showRank) renderRank(rankDataLocal);
+
+    mask.style.display = "flex";
+  }
+  function closeModal(){ mask.style.display = "none"; }
+
+  btnClose.addEventListener("click", closeModal);
+  btnAgain.addEventListener("click", () => { closeModal(); resetGame(); startGame(); });
+
+  btnClearRank.addEventListener("click", () => {
+    clearBoard();
+    renderRank([]);
+    beep(330, 0.08, "square", 0.12);
+  });
+
+  document.getElementById("btnHow").addEventListener("click", () => {
+    openModal({
+      title: "玩法說明",
+      text:
+`你是鹿鹿，去吃「鹿粉」讓身體變長！
+• 吃到鹿粉：+1 分（連吃會稍微加速）
+• 彩蛋物件：+7 分＋短暫加速
+• 撞牆 / 撞到自己：遊戲結束
+排行榜：存本機 LocalStorage（免後端）。`,
+      showRank: true,
+      rankDataLocal: loadLocalBoard(),
+      showClear: true
+    });
+  });
+
+  /***********************
+   * 開始按鈕
+   ***********************/
+  document.getElementById("btnStart").addEventListener("click", () => {
+    if (!snake.length) resetGame();
+    startGame();
+  });
+
+  // Init
+  resetGame();
+  draw();
+})();
+</script>
+</body>
+</html>
