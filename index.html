@@ -332,7 +332,7 @@
     <p id="modalText" style="margin-top:10px;"></p>
 
     <div class="rank" id="rankBox" style="display:none;">
-      <b>🏆 排行榜（前 10 名）</b>
+      <b>🏆 排行榜（前 6 名｜近 7 天）</b>
       <ol id="rankList"></ol>
     </div>
 
@@ -368,17 +368,22 @@
   const HEAD_SCALE   = 1.35;
 
   /***********************
-   * 分數下限（新需求）：最低 1 分
+   * 分數下限：最低 1 分
    ***********************/
   const SCORE_FLOOR = 1;
 
   /***********************
-   * 儲存 key
+   * 排行榜：前 6 名、保留 7 天
    ***********************/
-  const STORAGE_KEY = "aruru_snake_board_final_v2";
-  const BEST_KEY = "aruru_snake_best_final_v2";
-  const NAME_KEY = "aruru_snake_name_final_v2";
-  const AUDIO_KEY = "aruru_snake_audio_final_v2";
+  const STORAGE_KEY = "aruru_snake_board_final_v3";
+  const BEST_KEY = "aruru_snake_best_final_v3";
+  const NAME_KEY = "aruru_snake_name_final_v3";
+  const AUDIO_KEY = "aruru_snake_audio_final_v3";
+  const LAST_SCORE_KEY = "aruru_snake_last_score_final_v3";
+
+  const KEEP_DAYS = 7;
+  const TOP_N = 6;
+  const KEEP_MS = KEEP_DAYS * 24 * 60 * 60 * 1000;
 
   /***********************
    * Canvas
@@ -602,23 +607,51 @@
 
   /***********************
    * 排行榜（LocalStorage）
+   * - 只保留近 7 天資料
+   * - 只取前 6 名
    ***********************/
-  function loadBoard(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
-  function saveBoard(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+  function pruneAndNormalize(list){
+    const now = Date.now();
+    const fresh = (Array.isArray(list) ? list : [])
+      .filter(x => x && typeof x.at === "number" && (now - x.at) <= KEEP_MS)
+      .map(x => ({
+        name: (x.name || "玩家").toString().slice(0,12),
+        score: Number(x.score) || 0,
+        at: Number(x.at) || now,
+        avaUrl: x.avaUrl || ""
+      }));
+    fresh.sort((a,b)=> b.score - a.score);
+    return fresh.slice(0, TOP_N);
+  }
+
+  function loadBoard(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const cleaned = pruneAndNormalize(raw);
+      // 讀取時順手回存（把過期清掉）
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      return cleaned;
+    } catch {
+      return [];
+    }
+  }
+  function saveBoard(list){
+    const cleaned = pruneAndNormalize(list);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    return cleaned;
+  }
+
   function addScoreToBoard(entry){
     const list = loadBoard();
     list.push(entry);
-    list.sort((a,b) => b.score - a.score);
-    const top10 = list.slice(0,10);
-    saveBoard(top10);
-    return top10;
+    return saveBoard(list);
   }
   function clearBoard(){ localStorage.removeItem(STORAGE_KEY); }
 
   function renderRank(list){
-    const data = Array.isArray(list) ? list : loadBoard();
+    const data = pruneAndNormalize(Array.isArray(list) ? list : loadBoard());
     rankList.innerHTML = "";
-    data.slice(0,10).forEach((r, i) => {
+    data.slice(0,TOP_N).forEach((r, i) => {
       const li = document.createElement("li");
       const left = document.createElement("div");
       left.className = "rankLeft";
@@ -654,7 +687,7 @@
   document.getElementById("btnRank").addEventListener("click", () => {
     openModal({
       title: "排行榜",
-      sub: "隨機鹿鹿頭貼＋前 10 名",
+      sub: `前 ${TOP_N} 名｜近 ${KEEP_DAYS} 天最佳成績`,
       text: "（本排行榜儲存在你的裝置 LocalStorage）",
       score: currentScoreFinalForUI(),
       showRank: true,
@@ -684,7 +717,6 @@
     return ITEM_DEFS[0];
   }
   function pickPositiveDef(){
-    // 依權重在正向物件中抽（阿水/鹿爸/花媽）
     const sum = POSITIVE_DEFS.reduce((a,d)=>a+d.prob,0) || 1;
     let r = Math.random() * sum;
     for (const d of POSITIVE_DEFS){
@@ -725,20 +757,26 @@
   const INIT_LEN = 1;
 
   let targets = [];
-  let warns = []; // 花媽閃光預告
+  let warns = [];
 
   let desiredCount = 1;
   let nextDesiredRecalcAt = 0;
 
   let pendingGrowth = 0;
-  let score = SCORE_FLOOR;              // ✅ 起始分數 1
+  let score = SCORE_FLOOR;
   let best = Number(localStorage.getItem(BEST_KEY) || 0);
   $best.textContent = fmt(best);
 
   let streak = 0;
   let lastPositiveEatAt = 0;
 
-  const baseTickMs = 120;
+  /***********************
+   * ✅ 速度調整：初始速度 70%（更慢）
+   * 既有「隨時間遞增」保持不變
+   ***********************/
+  const SPEED_START = 0.70;
+  const baseTickMs = 120 / SPEED_START;  // 原本120ms -> 變慢到約171ms
+  const baseMinMs  = 92  / SPEED_START;  // 原本92ms -> 約131ms（時間推進後的最低基準）
   const MOM_SPEED_FACTOR = 1.7;
   const MOM_SPEED_MS = baseTickMs / MOM_SPEED_FACTOR;
   const MOM_BOOST_MS = 3000;
@@ -747,6 +785,14 @@
   let tickMs = baseTickMs;
   let tickHandle = null;
   let gameStartAt = 0;
+
+  /***********************
+   * ✅ 倒數 3,2,1
+   ***********************/
+  let countdownActive = false;
+  let countdownN = 0;
+  let countdownTimer = null;
+  let countdownEndsAt = 0;
 
   const elapsedMs = ()=> running ? (Date.now() - gameStartAt) : 0;
 
@@ -771,13 +817,13 @@
   function effectiveTickMs(){
     const e = elapsedMs();
     const timeBoost = Math.min(1, e / 90000);
-    const timeBaseMs = baseTickMs - (baseTickMs - 92) * timeBoost;
+    const timeBaseMs = baseTickMs - (baseTickMs - baseMinMs) * timeBoost;
 
     const sf = speedFactorFromStreak();
     let ms = timeBaseMs / sf;
 
     if (Date.now() < momBoostUntil) ms = Math.min(ms, MOM_SPEED_MS);
-    return clamp(ms, 55, 180);
+    return clamp(ms, 70, 220);
   }
 
   function applyTickRate(){
@@ -821,7 +867,6 @@
   }
 
   function updateUI(){
-    // ✅ 分數顯示也保底
     $score.textContent = fmt(Math.max(SCORE_FLOOR, score));
     $streak.textContent = String(Math.floor(streak));
     $mult.textContent = "x" + fmt(scoreMultiplier());
@@ -883,22 +928,19 @@
     const e = elapsedMs();
     const minesOnField = targets.filter(t => t.def.key === "ANGRY").length;
 
-    // ✅ 新規則：若 desiredCount==1，場上唯一物件必須是「加分項目」
-    //           => 這樣永遠不會出現「只有生氣鹿鹿」的狀況
+    // ✅ desiredCount==1：唯一物件必須是加分
     const forbidSoloMine = (desiredCount <= 1);
 
-    // 60秒後：偶爾連鎖生成 2 顆地雷（仍不陰）
     const allowChainMine = (e >= 60000) && (Math.random() < 0.18);
     const maxMines = maxMinesNow();
 
     for (let attempt=0; attempt<180; attempt++){
       let def = pickItemByProb();
 
-      // ✅ 保證至少一個加分物件：若目前完全沒有加分物件，這次強制抽加分
+      // ✅ 永遠至少有 1 個加分物件
       const hasPositiveNow = targets.some(t => t.def.isPositive);
       if (!hasPositiveNow) def = pickPositiveDef();
 
-      // 單物件階段禁止地雷
       if (forbidSoloMine && def.key === "ANGRY") def = pickPositiveDef();
 
       if (def.key === "MOM"){
@@ -934,7 +976,6 @@
       return true;
     }
 
-    // 保底：放阿水
     const safeDef = ITEM_DEFS.find(d => d.key === "ASHUI") || ITEM_DEFS[0];
     const c = tryPlaceAtSafeCell(() => true);
     if (!c) return false;
@@ -964,19 +1005,16 @@
     if (!ok) targets.push(t);
   }
 
-  // ✅ 新規則：任何時候場上至少 1 個加分項目
   function enforceAtLeastOnePositive(now){
     const hasPos = targets.some(t => t.def.isPositive);
     if (hasPos) return;
 
-    // 若全是地雷，直接把其中一個換成加分
     const mine = targets.find(t => t.def.key === "ANGRY") || targets[0];
     if (mine){
       const idx = targets.indexOf(mine);
       if (idx >= 0) targets.splice(idx, 1);
     }
-    // 強制生成一個加分物件（可能是花媽預告）
-    // 先嘗試花媽（若冷卻中就抽阿水/鹿爸）
+
     const d = (canSpawnMom(now) && Math.random() < 0.25) ? ITEM_DEFS.find(x=>x.key==="MOM") : pickPositiveDef();
     if (d && d.key === "MOM") scheduleMomWarn(now);
     else {
@@ -1034,7 +1072,6 @@
       targets.pop();
     }
 
-    // ✅ 最後強制保證：至少 1 個加分項目
     enforceAtLeastOnePositive(now);
   }
 
@@ -1080,7 +1117,6 @@
       sfxBeep(120, 0.11, "sawtooth", 0.20);
     }
 
-    // ✅ 分數最低 1 分（遊戲持續進行）
     score = Math.max(SCORE_FLOOR, score);
 
     applyTickRate();
@@ -1130,12 +1166,10 @@
 
     snake.unshift(newHead);
 
-    // 吃到 x2 圈
     if (boost && newHead.x === boost.x && newHead.y === boost.y){
       onEatBoost();
     }
 
-    // 吃到 target
     const hitIndex = targets.findIndex(t => t.x === newHead.x && t.y === newHead.y);
     if (hitIndex >= 0){
       const t = targets[hitIndex];
@@ -1144,9 +1178,16 @@
       maintainAll();
     }
 
-    // 成長（支援 1.5）
-    if (pendingGrowth >= 1){
+    // ✅ 成長：支援小數（例如 +1.5）
+    if (pendingGrowth >= 1) {
       pendingGrowth -= 1;
+    } else if (pendingGrowth > 0) {
+      if (Math.random() < pendingGrowth) {
+        pendingGrowth = 0;
+      } else {
+        pendingGrowth = 0;
+        snake.pop();
+      }
     } else {
       snake.pop();
     }
@@ -1154,6 +1195,20 @@
     applyTickRate();
     updateUI();
     draw();
+  }
+
+  function scoreDeltaText(finalScore){
+    const prevRaw = localStorage.getItem(LAST_SCORE_KEY);
+    const prev = (prevRaw == null) ? null : Number(prevRaw);
+    localStorage.setItem(LAST_SCORE_KEY, String(finalScore));
+
+    if (prev == null || Number.isNaN(prev)) return { prevText: "前次成績：無", deltaText: "本次成績：首局記錄" };
+
+    const d = finalScore - prev;
+    if (Math.abs(d) < 1e-9) return { prevText: `前次成績：${fmt(prev)}`, deltaText: "本次比前次：持平" };
+    const sign = d > 0 ? "上升" : "下降";
+    const arrow = d > 0 ? "⬆️" : "⬇️";
+    return { prevText: `前次成績：${fmt(prev)}`, deltaText: `本次比前次：${arrow} ${sign} ${fmt(Math.abs(d))}` };
   }
 
   function gameOver(reason="撞到牆或自己"){
@@ -1173,18 +1228,22 @@
     }
 
     const avaUrl = pickRandomAva();
-    const top10 = addScoreToBoard({ name: playerName, score: finalScore, at: Date.now(), avaUrl });
+    const top6 = addScoreToBoard({ name: playerName, score: finalScore, at: Date.now(), avaUrl });
+
+    const { prevText, deltaText } = scoreDeltaText(finalScore);
 
     openModal({
       title: "遊戲結束！",
       sub: `原因：${reason}　｜　結束加成：身體多 ${bonus} 格 +${bonus} 分`,
       text:
 `你的最終分數：<b>${fmt(finalScore)}</b><br/>
-（即時分數：${fmt(score)} ＋ 長度加成：${fmt(bonus)}）`,
+（即時分數：${fmt(score)} ＋ 長度加成：${fmt(bonus)}）<br/>
+${prevText}<br/>
+<b>${deltaText}</b>`,
       score: finalScore,
       showRank: true,
       showAgain: true,
-      rankData: top10,
+      rankData: top6,
       avaUrl
     });
   }
@@ -1192,59 +1251,17 @@
   btnAgain.addEventListener("click", () => {
     closeModal();
     resetGame();
-    startGame();
+    startCountdownThenGame();
   });
   btnGo.addEventListener("click", () => {
     closeModal();
     resetGame();
-    startGame();
+    startCountdownThenGame();
   });
 
   /***********************
-   * ✅ 身體斑點更新：改成「仿長頸鹿紋路」的不規則斑塊
+   * ✅ 身體外觀：改成「明顯黃色」＋紅斑（類似你提供圖檔）
    ***********************/
-  function hash32(n){
-    n |= 0;
-    n ^= n >>> 16;
-    n = Math.imul(n, 0x7feb352d);
-    n ^= n >>> 15;
-    n = Math.imul(n, 0x846ca68b);
-    n ^= n >>> 16;
-    return n >>> 0;
-  }
-  function seeded01(seed){
-    const h = hash32(seed);
-    return (h % 1000000) / 1000000;
-  }
-  function blob(ctx, cx, cy, r, seed){
-    // 以多個小圓疊成不規則斑塊（比三個點更像紋路）
-    const k = 6 + Math.floor(seeded01(seed+9)*5);
-    for (let i=0;i<k;i++){
-      const a = (Math.PI*2) * (i/k) + seeded01(seed+i*7)*0.8;
-      const rr = r * (0.55 + seeded01(seed+i*13)*0.55);
-      const ox = Math.cos(a) * r * (0.25 + seeded01(seed+i*17)*0.45);
-      const oy = Math.sin(a) * r * (0.25 + seeded01(seed+i*19)*0.45);
-      ctx.beginPath();
-      ctx.ellipse(cx+ox, cy+oy, rr*0.78, rr*0.62, seeded01(seed+i*23)*0.8, 0, Math.PI*2);
-      ctx.fill();
-    }
-  }
-
-  /***********************
-   * 繪圖
-   ***********************/
-  function drawGridGlow(){
-    ctx.save();
-    ctx.globalAlpha = 0.08;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    for(let i=1;i<GRID;i++){
-      ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
     ctx.moveTo(x+r,y);
@@ -1254,46 +1271,63 @@
     ctx.arcTo(x,y,x+w,y,r);
     ctx.closePath();
   }
+  function cloverSpot(cx, cy, s, rot=0){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    ctx.ellipse(-s*0.35, 0, s*0.42, s*0.34, 0, 0, Math.PI*2);
+    ctx.ellipse( s*0.35, 0, s*0.42, s*0.34, 0, 0, Math.PI*2);
+    ctx.ellipse(0, s*0.28, s*0.34, s*0.40, 0, 0, Math.PI*2);
+    ctx.closePath();
+    ctx.restore();
+  }
 
   function drawBody(seg, idx){
     const x = seg.x * CELL, y = seg.y * CELL;
-    const seed = (seg.x + 31*seg.y + 131*idx) | 0;
 
-    // 底色（鹿皮）
+    // 主體黃色（明顯）
     ctx.save();
-    ctx.fillStyle = (idx % 2 === 0) ? "#ffe1a6" : "#ffe7b8";
-    roundRect(x+2,y+2,CELL-4,CELL-4,10);
+    ctx.shadowColor = "rgba(0,0,0,.18)";
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "#ffd400"; // 明顯黃
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.fill();
 
-    // 邊緣柔光
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#ffffff";
-    roundRect(x+3,y+3,CELL-6,CELL-6,9);
-    ctx.fill();
+    // 深色描邊（像圖檔外框）
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = "#3b1b14";
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
+    ctx.stroke();
 
-    // 斑塊（不規則、較像長頸鹿）
+    // 紅色斑（2~3個，形狀偏「三瓣」）
+    const s = CELL * 0.12;
+    const seed = (seg.x*131 + seg.y*977 + idx*271) >>> 0;
+    const r1 = ((seed % 1000) / 1000) * Math.PI*2;
+    const r2 = (((seed>>8) % 1000) / 1000) * Math.PI*2;
+
+    ctx.fillStyle = "#b12a2a";
     ctx.globalAlpha = 0.95;
-    ctx.fillStyle = "#c5742a";
-    const n = 2 + Math.floor(seeded01(seed+3)*3); // 2~4 塊
-    for (let i=0;i<n;i++){
-      const cx = x + CELL*(0.30 + seeded01(seed+100+i*11)*0.45);
-      const cy = y + CELL*(0.30 + seeded01(seed+200+i*13)*0.45);
-      const r  = CELL*(0.12 + seeded01(seed+300+i*17)*0.14);
-      blob(ctx, cx, cy, r, seed + i*97);
+    cloverSpot(x + CELL*0.36, y + CELL*0.58, s*1.15, r1);
+    ctx.fill();
+    cloverSpot(x + CELL*0.64, y + CELL*0.52, s*1.05, r2);
+    ctx.fill();
+
+    // 偶爾加一個小紅斑（讓身體更像圖檔）
+    if (idx % 3 === 0){
+      cloverSpot(x + CELL*0.50, y + CELL*0.70, s*0.85, r1*0.7);
+      ctx.fill();
     }
 
-    // 斑塊描邊（讓紋理更像圖檔那種「邊界感」）
-    ctx.globalAlpha = 0.25;
-    ctx.strokeStyle = "#7a3f14";
-    ctx.lineWidth = 1.2;
-    for (let i=0;i<n;i++){
-      const cx = x + CELL*(0.30 + seeded01(seed+400+i*11)*0.45);
-      const cy = y + CELL*(0.30 + seeded01(seed+500+i*13)*0.45);
-      const r  = CELL*(0.12 + seeded01(seed+600+i*17)*0.14);
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, r*1.05, r*0.85, seeded01(seed+i*29)*0.9, 0, Math.PI*2);
-      ctx.stroke();
-    }
+    // 小腳底（深紅棕，增加角色感；很淡就好）
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#7b1d1a";
+    const fw = CELL*0.24, fh = CELL*0.12;
+    roundRect(x + CELL*0.18, y + CELL*0.83, fw, fh, 6);
+    ctx.fill();
+    roundRect(x + CELL*0.58, y + CELL*0.83, fw, fh, 6);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -1302,10 +1336,15 @@
     const img = SPR.HEAD;
     const x = seg.x * CELL, y = seg.y * CELL;
 
+    // 頭部底（跟身體一致的黃＋外框）
     ctx.save();
-    ctx.fillStyle = "#ffe7b8";
-    roundRect(x+2,y+2,CELL-4,CELL-4,10);
+    ctx.fillStyle = "#ffd400";
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.fill();
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = "#3b1b14";
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
+    ctx.stroke();
     ctx.restore();
 
     if (!img) return;
@@ -1325,6 +1364,21 @@
 
     const size = CELL * HEAD_SCALE;
     ctx.drawImage(img, -size/2, -size/2, size, size);
+    ctx.restore();
+  }
+
+  /***********************
+   * 繪圖
+   ***********************/
+  function drawGridGlow(){
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    for(let i=1;i<GRID;i++){
+      ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -1412,6 +1466,34 @@
     ctx.restore();
   }
 
+  function drawCountdownOverlay(){
+    if (!countdownActive) return;
+
+    const now = Date.now();
+    const remain = Math.max(0, countdownEndsAt - now);
+    const t = 1 - clamp(remain / 1000, 0, 1); // 0->1
+    const scale = 1 + (0.25 * (1 - t));
+    const alpha = 0.35 + 0.65 * (1 - t);
+
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.45)";
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(255,255,255,.92)";
+    ctx.font = `900 ${Math.floor(120*scale)}px system-ui, -apple-system`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(countdownN), cv.width/2, cv.height/2 - 10);
+
+    ctx.globalAlpha = 0.9;
+    ctx.font = `900 ${Math.floor(18)}px system-ui, -apple-system`;
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.fillText("準備開始…", cv.width/2, cv.height/2 + 90);
+
+    ctx.restore();
+  }
+
   function draw(){
     ctx.clearRect(0,0,cv.width,cv.height);
     ctx.fillStyle = "#0b0b0f";
@@ -1426,7 +1508,7 @@
     for (let i=snake.length-1; i>=1; i--) drawBody(snake[i], i);
     drawHead(snake[0]);
 
-    if (!running){
+    if (!running && !countdownActive){
       ctx.save();
       ctx.globalAlpha = 0.92;
       ctx.fillStyle = "rgba(255,255,255,.85)";
@@ -1438,6 +1520,8 @@
       ctx.fillText("花媽先閃光1秒再出現；60秒後會出 x2 加成圈", cv.width/2, cv.height/2 + 14);
       ctx.restore();
     }
+
+    drawCountdownOverlay();
   }
 
   /***********************
@@ -1448,12 +1532,16 @@
     nextDir = {x:nx, y:ny};
   }
 
+  function requestStartFromInput(){
+    if (!running && !countdownActive) startCountdownThenGame();
+  }
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") setDir(0,-1);
     if (e.key === "ArrowDown") setDir(0,1);
     if (e.key === "ArrowLeft") setDir(-1,0);
     if (e.key === "ArrowRight") setDir(1,0);
-    if (!running && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) startGame();
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) requestStartFromInput();
   });
 
   function bindPad(id, nx, ny){
@@ -1461,7 +1549,7 @@
     el.addEventListener("pointerdown", (ev) => {
       ev.preventDefault();
       setDir(nx, ny);
-      if (!running) startGame();
+      requestStartFromInput();
     });
   }
   bindPad("up", 0, -1);
@@ -1486,7 +1574,7 @@
     if (Math.abs(dxT) > Math.abs(dyT)) setDir(dxT > 0 ? 1 : -1, 0);
     else setDir(0, dyT > 0 ? 1 : -1);
 
-    if (!running) startGame();
+    requestStartFromInput();
   });
 
   /***********************
@@ -1494,7 +1582,7 @@
    ***********************/
   document.getElementById("btnStart").addEventListener("click", () => {
     if (!snake.length) resetGame();
-    startGame();
+    if (!running && !countdownActive) startCountdownThenGame();
   });
 
   document.getElementById("btnHow").addEventListener("click", () => {
@@ -1532,7 +1620,11 @@
 地圖會出現「x2 加成圈」，吃到後「分數 x2 持續 3 秒」（只影響加分項目得分）
 
 【結束加成】
-每多一格身體 +1 分（以初始長度 1 為基準）`;
+每多一格身體 +1 分（以初始長度 1 為基準）
+
+【排行榜規則】
+• 只顯示前 ${TOP_N} 名
+• 只保留近 ${KEEP_DAYS} 天的成績（過期自動剔除）`;
 
     openModal({
       title: "玩法與加減分說明",
@@ -1550,11 +1642,13 @@
       title: "準備開始！",
       sub: "阿鹿鹿文創-貪食鹿(吃鹿粉)",
       text:
-`前 20 秒固定 1 物件讓你上手（且必為加分）；之後物件數量與刷新速度會逐步提升。<br/>
+`按「開始」後會倒數 3、2、1 才正式開跑。<br/>
+前 20 秒固定 1 物件讓你上手（且必為加分）；之後物件數量與刷新速度會逐步提升。<br/>
 花媽是彩蛋：會先「閃光 1 秒」預告，吃到 +3 分、身體 +2、1.7 倍加速 3 秒。<br/>
 生氣鹿鹿是地雷：扣分縮短（最低不小於 1），並中斷連吃；且不會在蛇頭 5 格內生成。<br/>
 分數最低維持 1 分（吃到 -3 也不會再更低）。<br/>
-60 秒後會出現「x2 限時加成圈」：吃到後分數 x2 持續 3 秒（只影響加分項目）。`,
+60 秒後會出現「x2 限時加成圈」：吃到後分數 x2 持續 3 秒（只影響加分項目）。<br/>
+排行榜：只保留近 ${KEEP_DAYS} 天的前 ${TOP_N} 名。`,
       score: SCORE_FLOOR,
       showGo: true,
       showRank: false,
@@ -1564,11 +1658,55 @@
   }
 
   /***********************
+   * ✅ 倒數開跑
+   ***********************/
+  function startCountdownThenGame(){
+    if (running || countdownActive) return;
+
+    ensureAudio();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+
+    countdownActive = true;
+    countdownN = 3;
+    countdownEndsAt = Date.now() + 1000;
+    draw();
+
+    // 先嗶一聲
+    sfxBeep(660, 0.06, "square", 0.16);
+
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      countdownN -= 1;
+      if (countdownN <= 0){
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        countdownActive = false;
+        startGame();
+        return;
+      }
+      countdownEndsAt = Date.now() + 1000;
+      sfxBeep(660, 0.06, "square", 0.16);
+      draw();
+    }, 1000);
+
+    // 讓倒數時也有動畫更新（不然只有每秒更新一次）
+    const anim = () => {
+      if (!countdownActive) return;
+      draw();
+      requestAnimationFrame(anim);
+    };
+    requestAnimationFrame(anim);
+  }
+
+  /***********************
    * Reset / Start
    ***********************/
   function resetGame(){
     running = false;
     clearInterval(tickHandle); tickHandle = null;
+
+    countdownActive = false;
+    clearInterval(countdownTimer); countdownTimer = null;
 
     dir = {x:1,y:0};
     nextDir = {x:1,y:0};
@@ -1576,7 +1714,7 @@
     snake = [{ x: Math.floor(GRID/2), y: Math.floor(GRID/2) }];
     pendingGrowth = 0;
 
-    score = SCORE_FLOOR;      // ✅ 起始 1
+    score = SCORE_FLOOR;
     streak = 0;
     lastPositiveEatAt = 0;
 
@@ -1610,7 +1748,7 @@
     nextDesiredRecalcAt = 0;
 
     ensureAudio();
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     if ($bgmOn.checked) startBGM();
 
     maintainAll();
@@ -1618,12 +1756,6 @@
     clearInterval(tickHandle);
     tickHandle = setInterval(tick, tickMs);
   }
-
-  document.getElementById("btnGo").addEventListener("click", () => {
-    closeModal();
-    resetGame();
-    startGame();
-  });
 
   /***********************
    * 初始化
