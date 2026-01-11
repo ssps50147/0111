@@ -24,7 +24,7 @@
       justify-content:center;
     }
     .wrap{
-      width:min(580px, 100%);
+      width:min(620px, 100%);
       padding: calc(12px + var(--safeT)) 12px calc(12px + var(--safeB));
       box-sizing:border-box;
     }
@@ -75,7 +75,7 @@
 
     .row{display:flex; gap:12px; margin-top:12px; align-items:stretch; flex-wrap:wrap;}
     .panel{
-      flex:1 1 260px;
+      flex:1 1 280px;
       padding:12px;
       border-radius:16px;
       background: var(--card);
@@ -149,7 +149,7 @@
       font-size:12px; font-weight:900;
       white-space:nowrap;
     }
-    .slider input[type="range"]{ width:120px; }
+    .slider input[type="range"]{ width:130px; }
 
     .namebox{
       display:flex;
@@ -159,7 +159,7 @@
       flex-wrap:wrap;
     }
     .namebox input{
-      flex: 1 1 140px;
+      flex: 1 1 160px;
       border:1px solid rgba(0,0,0,.15);
       border-radius:12px;
       padding:10px 12px;
@@ -179,7 +179,7 @@
       z-index:50;
     }
     .modal{
-      width:min(580px, 100%);
+      width:min(620px, 100%);
       border-radius:18px;
       background:#fff;
       padding:14px;
@@ -200,7 +200,6 @@
       object-fit:cover;
       flex: 0 0 auto;
     }
-    .modal h3{margin:6px 0 8px; font-size:16px;}
     .modal p{margin:0 0 10px; font-size:13px; opacity:.88; line-height:1.55;}
     .modal .actions{
       display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;
@@ -236,7 +235,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      max-width: 280px;
+      max-width: 320px;
     }
     .rankScore{font-weight:900;}
   </style>
@@ -298,7 +297,8 @@
   </div>
 
   <div class="gamebox">
-    <canvas id="cv" width="486" height="486"></canvas>
+    <!-- ✅ 必改2：放大 canvas 解析度（18 的倍數 -> 每格更清楚） -->
+    <canvas id="cv" width="576" height="576"></canvas>
 
     <div class="controls">
       <div class="pad" id="left">⬅️</div>
@@ -321,7 +321,7 @@
       <div class="modalHeadLeft">
         <img id="modalAva" class="avatar" alt="鹿鹿" />
         <div style="min-width:0;">
-          <h3 id="modalTitle" style="margin:0 0 6px;">提示</h3>
+          <h3 id="modalTitle" style="margin:0 0 6px; font-size:16px;">提示</h3>
           <div style="font-size:12px;opacity:.8;line-height:1.35;" id="modalSub"></div>
         </div>
       </div>
@@ -349,39 +349,41 @@
 <script>
 (() => {
   /***********************
-   * 圖片網址（你提供）
+   * ✅ 必改1：改用 raw.githubusercontent.com 直連（最穩）
    ***********************/
   const URLS = {
-    HEAD:  "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
-    ASHUI: "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
-    DAD:   "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
-    MOM:   "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
-    ANGRY: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true",
+    HEAD:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu1.png",
+    ASHUI: "https://raw.githubusercontent.com/z883662/Aruru/main/lulu4.png",
+    DAD:   "https://raw.githubusercontent.com/z883662/Aruru/main/lulu2.png",
+    MOM:   "https://raw.githubusercontent.com/z883662/Aruru/main/lulu3.png",
+    ANGRY: "https://raw.githubusercontent.com/z883662/Aruru/main/lulu5.png",
   };
   const LULU_POOL = [URLS.HEAD, URLS.DAD, URLS.MOM, URLS.ASHUI, URLS.ANGRY];
   const pickRandomAva = () => LULU_POOL[Math.floor(Math.random()*LULU_POOL.length)];
 
   /***********************
-   * 你指定：GRID / SCALE
+   * GRID / SCALE
    ***********************/
   const GRID = 18;
-  const TARGET_SCALE = 1.25;
-  const HEAD_SCALE = 1.25;
+
+  // ✅ 加強3：圖更大更清楚
+  const TARGET_SCALE = 1.45; // 物件更大
+  const HEAD_SCALE   = 1.35; // 蛇頭稍大但不會太遮
 
   /***********************
    * 儲存 key
    ***********************/
-  const STORAGE_KEY = "aruru_snake_board_v4";
-  const BEST_KEY = "aruru_snake_best_v4";
-  const NAME_KEY = "aruru_snake_name_v4";
-  const AUDIO_KEY = "aruru_snake_audio_v4";
+  const STORAGE_KEY = "aruru_snake_board_final_v1";
+  const BEST_KEY = "aruru_snake_best_final_v1";
+  const NAME_KEY = "aruru_snake_name_final_v1";
+  const AUDIO_KEY = "aruru_snake_audio_final_v1";
 
   /***********************
    * Canvas
    ***********************/
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
-  const CELL = cv.width / GRID;
+  const CELL = cv.width / GRID; // 576/18=32px
 
   /***********************
    * UI
@@ -435,7 +437,7 @@
   btnClose.addEventListener("click", closeModal);
 
   /***********************
-   * 圖片預載
+   * 圖片預載（含錯誤警告 + 破快取）
    ***********************/
   const SPR = {};
   function loadImg(url){
@@ -443,8 +445,11 @@
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = url;
+      img.onerror = () => {
+        console.warn("IMG LOAD FAIL:", url);
+        resolve(null);
+      };
+      img.src = url + "?v=" + Date.now();
     });
   }
   async function preload() {
@@ -660,9 +665,9 @@
    * 物件定義（你指定）
    ***********************/
   const ITEM_DEFS = [
-    { key:"ASHUI", name:"阿水",    prob:0.35, score:+1,   grow:+1,   isPositive:true },
-    { key:"DAD",   name:"鹿爸",    prob:0.25, score:+1.5, grow:+1.5, isPositive:true },
-    { key:"MOM",   name:"花媽",    prob:0.20, score:+3,   grow:+2,   isPositive:true, isEgg:true },
+    { key:"ASHUI", name:"阿水",     prob:0.35, score:+1,   grow:+1,   isPositive:true },
+    { key:"DAD",   name:"鹿爸",     prob:0.25, score:+1.5, grow:+1.5, isPositive:true },
+    { key:"MOM",   name:"花媽",     prob:0.20, score:+3,   grow:+2,   isPositive:true, isEgg:true },
     { key:"ANGRY", name:"生氣鹿鹿", prob:0.20, score:-3,  shrink:2,  isPositive:false, isMine:true },
   ];
   function pickItemByProb(){
@@ -676,13 +681,13 @@
   }
 
   /***********************
-   * 分層刷新控制（你要的活動感）
+   * 分層刷新控制（活動感＋緊張但可控）
    ***********************/
   let lastMomSpawnAt = -1e15;
   let lastAngrySpawnAt = -1e15;
 
   const MOM_MIN_GAP_MS = 15000;   // 花媽至少 15 秒才出一次
-  const ANGRY_MIN_GAP_MS = 5500;  // 地雷至少 5.5 秒才出一次（緊張但可控）
+  const ANGRY_MIN_GAP_MS = 5500;  // 地雷頻率（緊張但可控）
   const ANGRY_SAFE_RADIUS = 5;    // 地雷離蛇頭至少 5 格
   const MOM_WARN_MS = 1000;       // 花媽出現前 1 秒閃光預告
 
@@ -708,7 +713,7 @@
   // targets: 真正可吃的物件
   let targets = [];
   // warns: 花媽預告閃光（不可吃），時間到會變成 MOM target
-  let warns = []; // {x,y,spawnAt} spawnAt=預告開始時間
+  let warns = []; // {x,y,spawnAt}
 
   let desiredCount = 1;
   let nextDesiredRecalcAt = 0;
@@ -783,7 +788,7 @@
   }
 
   /***********************
-   * 物件數量節奏（你指定的時間段）
+   * 物件數量節奏（0–20 / 20–40 / 40–60 / 60+）
    ***********************/
   function updateDesiredCount(){
     const e = elapsedMs();
@@ -843,27 +848,18 @@
     return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
   }
 
-  /***********************
-   * 分層刷新：生成一個 target（可能會先生成 MOM 預告）
-   ***********************/
   function maxMinesNow(){
     const e = elapsedMs();
-    // 60秒後地雷更常見，但仍可控
     return (e < 60000) ? 1 : 2;
   }
-
-  function canSpawnMom(now){
-    return (now - lastMomSpawnAt) >= MOM_MIN_GAP_MS;
-  }
-  function canSpawnAngry(now){
-    return (now - lastAngrySpawnAt) >= ANGRY_MIN_GAP_MS;
-  }
+  function canSpawnMom(now){ return (now - lastMomSpawnAt) >= MOM_MIN_GAP_MS; }
+  function canSpawnAngry(now){ return (now - lastAngrySpawnAt) >= ANGRY_MIN_GAP_MS; }
 
   function tryPlaceAtSafeCell(predicate){
-    for (let attempt=0; attempt<120; attempt++){
+    for (let attempt=0; attempt<140; attempt++){
       let c = randCell();
       let tries = 0;
-      while (cellOccupied(c.x,c.y) && tries < 500){
+      while (cellOccupied(c.x,c.y) && tries < 600){
         c = randCell(); tries++;
       }
       if (cellOccupied(c.x,c.y)) continue;
@@ -874,11 +870,10 @@
   }
 
   function scheduleMomWarn(now){
-    // 找位置（不需避頭，但避免撞蛇/物件）
     const c = tryPlaceAtSafeCell(() => true);
     if (!c) return false;
     warns.push({ x:c.x, y:c.y, spawnAt: now }); // 1 秒後轉 MOM
-    lastMomSpawnAt = now; // 先鎖定冷卻，避免連續預告
+    lastMomSpawnAt = now; // 先鎖冷卻，避免連續預告
     return true;
   }
 
@@ -887,22 +882,18 @@
     const minesOnField = targets.filter(t => t.def.key === "ANGRY").length;
 
     // 60秒後：偶爾連鎖生成 2 顆地雷（不陰：離頭>=5，且不超過上限）
-    const allowChainMine = (e >= 60000) && (Math.random() < 0.18); // 偶爾
+    const allowChainMine = (e >= 60000) && (Math.random() < 0.18);
     const maxMines = maxMinesNow();
 
-    // 先嘗試按權重抽 def，但要符合分層規則
-    for (let attempt=0; attempt<120; attempt++){
+    for (let attempt=0; attempt<160; attempt++){
       let def = pickItemByProb();
 
-      // 花媽：必須符合冷卻 -> 改成「先閃光 1 秒」再出現
       if (def.key === "MOM"){
         if (!canSpawnMom(now)) continue;
-        // 先排程預告（1秒後真正出現）
         if (scheduleMomWarn(now)) return true;
         continue;
       }
 
-      // 地雷：冷卻 + 同場上限 + 離頭5格
       if (def.key === "ANGRY"){
         if (!canSpawnAngry(now)) continue;
         if (minesOnField >= maxMines) continue;
@@ -913,21 +904,16 @@
         targets.push({ x:c.x, y:c.y, def, bornAt: now, ttlMs: ttlForNow() });
         lastAngrySpawnAt = now;
 
-        // 連鎖 2 顆（仍需上限 + 安全距離）
         if (allowChainMine && targets.filter(t => t.def.key === "ANGRY").length < maxMines){
-          // 連鎖的第二顆不需要額外冷卻，但仍避頭/不重疊
           const c2 = tryPlaceAtSafeCell((x,y)=> !tooCloseToHeadForAngry(x,y));
           if (c2){
             targets.push({ x:c2.x, y:c2.y, def, bornAt: now, ttlMs: ttlForNow() });
-            // 連鎖生成也更新 lastAngrySpawnAt，避免馬上又出
             lastAngrySpawnAt = now;
           }
         }
-
         return true;
       }
 
-      // 一般加分（阿水/鹿爸）
       const c = tryPlaceAtSafeCell(() => true);
       if (!c) continue;
 
@@ -952,7 +938,6 @@
     if (boost) return;
     if ((now - lastBoostSpawnAt) < BOOST_COOLDOWN_MS) return;
 
-    // 機率：越後期略提高（緊張但可控）
     const p = clamp(0.05 + Math.min(0.05, (e-BOOST_AFTER_MS)/120000*0.05), 0.05, 0.10);
     if (Math.random() > p) return;
 
@@ -966,17 +951,10 @@
    * 維持目標：過期不消失 -> 換位置/換角色
    ***********************/
   function rerollTarget(t, now){
-    // 重抽 def（遵守分層：可能轉成 MOM 預告）
-    // 先把原本位置釋放：做法是先暫時把它移除，再重新生成
     const idx = targets.indexOf(t);
     if (idx >= 0) targets.splice(idx, 1);
-
-    // 重新生成一個（可能是 MOM 預告或一般物件）
     const ok = spawnOneTarget(now);
-    if (!ok){
-      // 生成失敗就把原本塞回去（極端保底）
-      targets.push(t);
-    }
+    if (!ok) targets.push(t);
   }
 
   function maintainAll(){
@@ -984,17 +962,15 @@
 
     updateDesiredCount();
 
-    // 1) 花媽預告：到 1 秒就轉成 MOM target
+    // 花媽預告 -> 1 秒後轉正
     if (warns.length){
       const keep = [];
       for (const w of warns){
         if (now - w.spawnAt >= MOM_WARN_MS){
-          // 轉 MOM target
           const def = ITEM_DEFS.find(d => d.key === "MOM");
           if (def && !cellOccupied(w.x,w.y)){
             targets.push({ x:w.x, y:w.y, def, bornAt: now, ttlMs: ttlForNow() });
-            // MOM 生成不算地雷，不用安全距離；已經鎖冷卻
-            sfxBeep(880, 0.05, "square", 0.10); // 小提示音（不會太吵）
+            sfxBeep(880, 0.05, "square", 0.10);
           }
         } else {
           keep.push(w);
@@ -1003,39 +979,32 @@
       warns = keep;
     }
 
-    // 2) boost：過期改成換位置（不消失）
+    // x2圈：過期改成換位置（不消失）
     if (boost){
       if ((now - boost.bornAt) > boost.ttlMs){
         const c = tryPlaceAtSafeCell(() => true);
         if (c){
           boost.x = c.x; boost.y = c.y;
-          boost.bornAt = now;
-          boost.ttlMs = BOOST_TTL_MS;
-        } else {
-          // 找不到就延長避免卡死
-          boost.bornAt = now;
-          boost.ttlMs = BOOST_TTL_MS;
         }
+        boost.bornAt = now;
+        boost.ttlMs = BOOST_TTL_MS;
       }
     } else {
       maybeSpawnBoost(now);
     }
 
-    // 3) targets：過期就「換位置/換角色」
+    // 物件過期：換位置/換角色
     for (const t of [...targets]){
       if ((now - t.bornAt) > t.ttlMs){
         rerollTarget(t, now);
       }
     }
 
-    // 4) 補到 desiredCount（注意：MOM 預告算“將要出現”，但不算目前 targets，所以仍補 targets）
-    while (targets.length < desiredCount){
+    // 補到 desiredCount（warn 不算 targets）
+    let guard = 0;
+    while (targets.length < desiredCount && guard++ < 12){
       spawnOneTarget(now);
-      // 防呆：如果一直生不出，避免死循環
-      if (targets.length > desiredCount + 2) break;
     }
-
-    // 5) 若超過（保底縮回）
     while (targets.length > desiredCount){
       targets.pop();
     }
@@ -1059,12 +1028,10 @@
 
       pendingGrowth += (def.grow || 0);
 
-      // 音效：連吃音高
       const pitch = 520 + Math.min(30, Math.floor(streak)) * 18;
       sfxBeep(pitch, 0.06, "sine", 0.18);
       sfxBeep(pitch * 1.18, 0.04, "triangle", 0.12);
 
-      // 花媽：加速 3 秒（1.7x）＋特殊音效
       if (def.isEgg){
         momBoostUntil = Date.now() + MOM_BOOST_MS;
         sfxBeep(988, 0.07, "square", 0.20);
@@ -1072,7 +1039,6 @@
         sfxBeep(1760, 0.11, "triangle", 0.14);
       }
     } else {
-      // 地雷：中斷連吃、速度重置（也取消花媽加速）
       streak = 0;
       lastPositiveEatAt = 0;
       momBoostUntil = 0;
@@ -1094,16 +1060,14 @@
   }
 
   function onEatBoost(){
-    // x2 3 秒（不加長、不算扣分）
     doubleUntil = Date.now() + BOOST_DOUBLE_MS;
     sfxBeep(740, 0.06, "triangle", 0.14);
     sfxBeep(988, 0.08, "triangle", 0.14);
     sfxBeep(1319, 0.10, "triangle", 0.12);
 
-    // 吃到後把圈移走，稍後再生成（cooldown 由 lastBoostSpawnAt 控制）
-    boost = null;
+    boost = null; // 吃到就移除，冷卻後再生
 
-    // 算「加分事件」：算連吃+1 但不加分，讓玩家更想去吃
+    // 算加分事件：streak +1（但不加分/不加長）
     streak += 1;
     lastPositiveEatAt = Date.now();
 
@@ -1122,7 +1086,6 @@
       streak = Math.max(0, streak - 0.35);
     }
 
-    // 維持物件（含：過期換位/換角、花媽預告轉正、x2圈）
     maintainAll();
 
     dir = nextDir;
@@ -1142,18 +1105,17 @@
 
     snake.unshift(newHead);
 
-    // 先檢查吃到 x2 圈（優先處理）
+    // 吃到 x2 圈
     if (boost && newHead.x === boost.x && newHead.y === boost.y){
       onEatBoost();
     }
 
-    // 檢查吃到任一 target
+    // 吃到 target
     const hitIndex = targets.findIndex(t => t.x === newHead.x && t.y === newHead.y);
     if (hitIndex >= 0){
       const t = targets[hitIndex];
       onEat(t.def);
       targets.splice(hitIndex, 1);
-      // 吃掉後立刻補量（維持節奏）
       maintainAll();
     }
 
@@ -1242,14 +1204,14 @@
     const x = seg.x * CELL, y = seg.y * CELL;
     ctx.save();
     ctx.fillStyle = (idx % 2 === 0) ? "#ffd98a" : "#ffe29a";
-    roundRect(x+2,y+2,CELL-4,CELL-4,8);
+    roundRect(x+2,y+2,CELL-4,CELL-4,10);
     ctx.fill();
 
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#d0892d";
-    [[x+7,y+8],[x+14,y+11],[x+10,y+16]].forEach(([sx,sy])=>{
+    [[x+9,y+10],[x+18,y+13],[x+12,y+20]].forEach(([sx,sy])=>{
       ctx.beginPath();
-      ctx.ellipse(sx, sy, 3.1, 2.6, 0, 0, Math.PI*2);
+      ctx.ellipse(sx, sy, 3.3, 2.8, 0, 0, Math.PI*2);
       ctx.fill();
     });
     ctx.restore();
@@ -1261,7 +1223,7 @@
 
     ctx.save();
     ctx.fillStyle = "#ffe29a";
-    roundRect(x+2,y+2,CELL-4,CELL-4,8);
+    roundRect(x+2,y+2,CELL-4,CELL-4,10);
     ctx.fill();
     ctx.restore();
 
@@ -1306,11 +1268,13 @@
     const ox = x + (CELL - size) / 2;
     const oy = y + (CELL - size) / 2;
 
-    if (img) ctx.drawImage(img, ox, oy, size, size);
-    else {
+    if (img) {
+      ctx.drawImage(img, ox, oy, size, size);
+    } else {
+      // 若還是看到圓點：代表圖片仍未載入（可看 console 的 IMG LOAD FAIL）
       ctx.fillStyle = def.isMine ? "#ff4d4f" : (def.isEgg ? "#ffd24d" : "#ff5aa5");
       ctx.beginPath();
-      ctx.arc(x+CELL/2, y+CELL/2, CELL*0.38, 0, Math.PI*2);
+      ctx.arc(x+CELL/2, y+CELL/2, CELL*0.42, 0, Math.PI*2);
       ctx.fill();
     }
     ctx.restore();
@@ -1326,12 +1290,12 @@
     ctx.shadowBlur = 22;
     ctx.strokeStyle = "rgba(255,215,0,.95)";
     ctx.lineWidth = 4;
-    roundRect(x+3, y+3, CELL-6, CELL-6, 10);
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.stroke();
 
     ctx.globalAlpha = 0.9 * blink;
     ctx.fillStyle = "rgba(255,215,0,.18)";
-    roundRect(x+3, y+3, CELL-6, CELL-6, 10);
+    roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.fill();
     ctx.restore();
   }
@@ -1358,8 +1322,8 @@
     ctx.arc(x+CELL/2, y+CELL/2, CELL*0.32 + pulse*2, 0, Math.PI*2);
     ctx.fill();
 
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "rgba(255,255,255,.9)";
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "rgba(255,255,255,.95)";
     ctx.font = `900 ${Math.floor(CELL*0.36)}px system-ui`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1375,12 +1339,10 @@
 
     drawGridGlow();
 
-    // 先畫特效（預告、加成圈）再畫可吃物件
     warns.forEach(drawMomWarn);
     if (boost) drawBoost(boost);
     targets.forEach(drawTarget);
 
-    // snake
     for (let i=snake.length-1; i>=1; i--) drawBody(snake[i], i);
     drawHead(snake[0]);
 
@@ -1393,7 +1355,7 @@
       ctx.fillText("按「開始」或滑動/方向鍵開始", cv.width/2, cv.height/2 - 10);
       ctx.font = "13px system-ui, -apple-system";
       ctx.fillStyle = "rgba(255,255,255,.7)";
-      ctx.fillText("花媽會先閃光1秒再出現；60秒後會出 x2 加成圈", cv.width/2, cv.height/2 + 14);
+      ctx.fillText("花媽先閃光1秒再出現；60秒後會出 x2 加成圈", cv.width/2, cv.height/2 + 14);
       ctx.restore();
     }
   }
@@ -1551,7 +1513,6 @@
     nextDesiredRecalcAt = 0;
     gameStartAt = 0;
 
-    // 初始補一個物件
     updateDesiredCount();
     maintainAll();
 
@@ -1575,6 +1536,12 @@
     clearInterval(tickHandle);
     tickHandle = setInterval(tick, tickMs);
   }
+
+  document.getElementById("btnGo").addEventListener("click", () => {
+    closeModal();
+    resetGame();
+    startGame();
+  });
 
   /***********************
    * 初始化
