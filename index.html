@@ -269,8 +269,8 @@
         <div>身體長度</div><div class="v" id="len">1</div>
       </div>
       <div class="hint">
-        加分項目才算連吃；吃到地雷會中斷連吃並重置速度。<br/>
-        超過 3 秒沒吃到加分項目，連吃會開始緩慢下降（每 tick 約 -0.35）。
+        連續吃到加分項目會微幅加速；吃到地雷會中斷並重置速度。<br/>
+        超過 3 秒沒吃到加分項目，連吃會開始緩慢下降。
       </div>
     </div>
 
@@ -375,11 +375,11 @@
   /***********************
    * 排行榜：前 6 名、保留 7 天
    ***********************/
-  const STORAGE_KEY = "aruru_snake_board_final_v3";
-  const BEST_KEY = "aruru_snake_best_final_v3";
-  const NAME_KEY = "aruru_snake_name_final_v3";
-  const AUDIO_KEY = "aruru_snake_audio_final_v3";
-  const LAST_SCORE_KEY = "aruru_snake_last_score_final_v3";
+  const STORAGE_KEY = "aruru_snake_board_final_v4";
+  const BEST_KEY = "aruru_snake_best_final_v4";
+  const NAME_KEY = "aruru_snake_name_final_v4";
+  const AUDIO_KEY = "aruru_snake_audio_final_v4";
+  const LAST_SCORE_KEY = "aruru_snake_last_score_final_v4";
 
   const KEEP_DAYS = 7;
   const TOP_N = 6;
@@ -606,9 +606,7 @@
   window.addEventListener("keydown", unlockAudio, {once:false});
 
   /***********************
-   * 排行榜（LocalStorage）
-   * - 只保留近 7 天資料
-   * - 只取前 6 名
+   * 排行榜：只保留近 7 天、只取前 6 名
    ***********************/
   function pruneAndNormalize(list){
     const now = Date.now();
@@ -628,7 +626,6 @@
     try{
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       const cleaned = pruneAndNormalize(raw);
-      // 讀取時順手回存（把過期清掉）
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
       return cleaned;
     } catch {
@@ -697,7 +694,7 @@
   });
 
   /***********************
-   * 物件定義（你指定）
+   * 物件定義
    ***********************/
   const ITEM_DEFS = [
     { key:"ASHUI", name:"阿水",     prob:0.35, score:+1,   grow:+1,   isPositive:true },
@@ -727,7 +724,7 @@
   }
 
   /***********************
-   * 分層刷新控制
+   * 刷新控制
    ***********************/
   let lastMomSpawnAt = -1e15;
   let lastAngrySpawnAt = -1e15;
@@ -771,12 +768,11 @@
   let lastPositiveEatAt = 0;
 
   /***********************
-   * ✅ 速度調整：初始速度 70%（更慢）
-   * 既有「隨時間遞增」保持不變
+   * 速度：初始 70%，時間越久越快（保留）
    ***********************/
   const SPEED_START = 0.70;
-  const baseTickMs = 120 / SPEED_START;  // 原本120ms -> 變慢到約171ms
-  const baseMinMs  = 92  / SPEED_START;  // 原本92ms -> 約131ms（時間推進後的最低基準）
+  const baseTickMs = 120 / SPEED_START;
+  const baseMinMs  = 92  / SPEED_START;
   const MOM_SPEED_FACTOR = 1.7;
   const MOM_SPEED_MS = baseTickMs / MOM_SPEED_FACTOR;
   const MOM_BOOST_MS = 3000;
@@ -787,7 +783,7 @@
   let gameStartAt = 0;
 
   /***********************
-   * ✅ 倒數 3,2,1
+   * 倒數 3,2,1
    ***********************/
   let countdownActive = false;
   let countdownN = 0;
@@ -841,9 +837,6 @@
     return Math.max(SCORE_FLOOR, score + bonus);
   }
 
-  /***********************
-   * 物件數量節奏
-   ***********************/
   function updateDesiredCount(){
     const e = elapsedMs();
     if (Date.now() < nextDesiredRecalcAt) return;
@@ -927,17 +920,13 @@
   function spawnOneTarget(now){
     const e = elapsedMs();
     const minesOnField = targets.filter(t => t.def.key === "ANGRY").length;
-
-    // ✅ desiredCount==1：唯一物件必須是加分
     const forbidSoloMine = (desiredCount <= 1);
-
     const allowChainMine = (e >= 60000) && (Math.random() < 0.18);
     const maxMines = maxMinesNow();
 
     for (let attempt=0; attempt<180; attempt++){
       let def = pickItemByProb();
 
-      // ✅ 永遠至少有 1 個加分物件
       const hasPositiveNow = targets.some(t => t.def.isPositive);
       if (!hasPositiveNow) def = pickPositiveDef();
 
@@ -1027,7 +1016,7 @@
     const now = Date.now();
     updateDesiredCount();
 
-    // 花媽預告 -> 1 秒後轉正
+    // 花媽預告 -> 1 秒後出現
     if (warns.length){
       const keep = [];
       for (const w of warns){
@@ -1044,7 +1033,7 @@
       warns = keep;
     }
 
-    // x2圈：過期改成換位置（不消失）
+    // x2圈：過期改成換位置
     if (boost){
       if ((now - boost.bornAt) > boost.ttlMs){
         const c = tryPlaceAtSafeCell(() => true);
@@ -1178,7 +1167,7 @@
       maintainAll();
     }
 
-    // ✅ 成長：支援小數（例如 +1.5）
+    // 成長：支援小數（例如 +1.5）
     if (pendingGrowth >= 1) {
       pendingGrowth -= 1;
     } else if (pendingGrowth > 0) {
@@ -1260,7 +1249,7 @@ ${prevText}<br/>
   });
 
   /***********************
-   * ✅ 身體外觀：改成「明顯黃色」＋紅斑（類似你提供圖檔）
+   * 繪圖：幾何工具
    ***********************/
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
@@ -1271,63 +1260,45 @@ ${prevText}<br/>
     ctx.arcTo(x,y,x+w,y,r);
     ctx.closePath();
   }
-  function cloverSpot(cx, cy, s, rot=0){
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rot);
-    ctx.beginPath();
-    ctx.ellipse(-s*0.35, 0, s*0.42, s*0.34, 0, 0, Math.PI*2);
-    ctx.ellipse( s*0.35, 0, s*0.42, s*0.34, 0, 0, Math.PI*2);
-    ctx.ellipse(0, s*0.28, s*0.34, s*0.40, 0, 0, Math.PI*2);
-    ctx.closePath();
-    ctx.restore();
-  }
 
+  /***********************
+   * ✅ 身體外觀：黃底 + 兩隻腳（紅棕小圓點）
+   * - 更貼近你提供圖框的「下緣＋兩腳」感覺
+   ***********************/
   function drawBody(seg, idx){
     const x = seg.x * CELL, y = seg.y * CELL;
 
-    // 主體黃色（明顯）
+    // 身體（黃）
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,.18)";
+    ctx.shadowColor = "rgba(0,0,0,.16)";
     ctx.shadowBlur = 10;
-    ctx.fillStyle = "#ffd400"; // 明顯黃
+
+    ctx.fillStyle = "#ffd400";  // 明顯黃
     roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.fill();
 
-    // 深色描邊（像圖檔外框）
+    // 外框（深色）
     ctx.shadowBlur = 0;
     ctx.lineWidth = 3.2;
     ctx.strokeStyle = "#3b1b14";
     roundRect(x+3, y+3, CELL-6, CELL-6, 12);
     ctx.stroke();
 
-    // 紅色斑（2~3個，形狀偏「三瓣」）
-    const s = CELL * 0.12;
-    const seed = (seg.x*131 + seg.y*977 + idx*271) >>> 0;
-    const r1 = ((seed % 1000) / 1000) * Math.PI*2;
-    const r2 = (((seed>>8) % 1000) / 1000) * Math.PI*2;
+    // 兩隻腳：用兩個小圓點（紅棕）
+    const footR = CELL * 0.13;
+    const fy = y + CELL * 0.90;
+    const fx1 = x + CELL * 0.32;
+    const fx2 = x + CELL * 0.68;
 
-    ctx.fillStyle = "#b12a2a";
-    ctx.globalAlpha = 0.95;
-    cloverSpot(x + CELL*0.36, y + CELL*0.58, s*1.15, r1);
-    ctx.fill();
-    cloverSpot(x + CELL*0.64, y + CELL*0.52, s*1.05, r2);
-    ctx.fill();
-
-    // 偶爾加一個小紅斑（讓身體更像圖檔）
-    if (idx % 3 === 0){
-      cloverSpot(x + CELL*0.50, y + CELL*0.70, s*0.85, r1*0.7);
-      ctx.fill();
-    }
-
-    // 小腳底（深紅棕，增加角色感；很淡就好）
-    ctx.globalAlpha = 0.85;
     ctx.fillStyle = "#7b1d1a";
-    const fw = CELL*0.24, fh = CELL*0.12;
-    roundRect(x + CELL*0.18, y + CELL*0.83, fw, fh, 6);
-    ctx.fill();
-    roundRect(x + CELL*0.58, y + CELL*0.83, fw, fh, 6);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(fx1, fy, footR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(fx2, fy, footR, 0, Math.PI*2); ctx.fill();
+
+    // 腳外框（深色，貼近圖檔邊線）
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = "#3b1b14";
+    ctx.beginPath(); ctx.arc(fx1, fy, footR, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(fx2, fy, footR, 0, Math.PI*2); ctx.stroke();
 
     ctx.restore();
   }
@@ -1336,7 +1307,7 @@ ${prevText}<br/>
     const img = SPR.HEAD;
     const x = seg.x * CELL, y = seg.y * CELL;
 
-    // 頭部底（跟身體一致的黃＋外框）
+    // 頭部底（跟身體一致）
     ctx.save();
     ctx.fillStyle = "#ffd400";
     roundRect(x+3, y+3, CELL-6, CELL-6, 12);
@@ -1367,9 +1338,6 @@ ${prevText}<br/>
     ctx.restore();
   }
 
-  /***********************
-   * 繪圖
-   ***********************/
   function drawGridGlow(){
     ctx.save();
     ctx.globalAlpha = 0.08;
@@ -1471,7 +1439,7 @@ ${prevText}<br/>
 
     const now = Date.now();
     const remain = Math.max(0, countdownEndsAt - now);
-    const t = 1 - clamp(remain / 1000, 0, 1); // 0->1
+    const t = 1 - clamp(remain / 1000, 0, 1);
     const scale = 1 + (0.25 * (1 - t));
     const alpha = 0.35 + 0.65 * (1 - t);
 
@@ -1578,7 +1546,7 @@ ${prevText}<br/>
   });
 
   /***********************
-   * 按鈕：開始 / 玩法
+   * 開始 / 玩法
    ***********************/
   document.getElementById("btnStart").addEventListener("click", () => {
     if (!snake.length) resetGame();
@@ -1587,48 +1555,25 @@ ${prevText}<br/>
 
   document.getElementById("btnHow").addEventListener("click", () => {
     const rule =
-`【出現機率 / 分數 / 身體變化】
-• 阿水 35%：+1 分，身體 +1
-• 鹿爸 25%：+1.5 分，身體 +1.5
-• 花媽 20%（彩蛋）：+3 分，身體 +2，速度 1.7 倍加速 3 秒（特殊音效）
-  ※ 花媽出現前會先「閃光 1 秒」預告
-• 生氣鹿鹿 20%（地雷）：-3 分，身體 -2（最低不小於初始長度 1），並中斷連吃、速度重置
-  ※ 地雷不會生成在蛇頭 5 格內（防太陰）
-  ※ 60 秒後「偶爾連鎖生成 2 顆」（仍遵守離頭 5 格 & 同場上限）
-  ※ 場上永遠至少有 1 個加分項目，不會只有地雷單獨存在
+`【重點玩法】
+• 吃到加分角色：分數增加、身體變長
+• 吃到生氣鹿鹿（地雷）：-3 分、身體縮短 -2、連吃中斷、速度重置
+• 分數最低維持 1 分（不會掉到 1 以下）
 
-【分數下限】
-分數最低維持 1 分（即使吃到 -3 也不會掉到 1 以下），遊戲持續進行。
+【連吃（streak）】
+• 連續吃到「加分項目」會持續微幅加速（也會讓加分更高）
 
-【連吃 streak】
-1) 吃到「加分項目」streak +1；吃到扣分項目 = 中斷（歸 0）
-2) 連續吃到加分項目才會持續微幅加速 + 音效音高上升
-3) 超過 3 秒沒吃到加分項目，streak 會緩慢下降（每 tick 約 -0.35）
-4) streak 達 10/20/30...：
-   • 倍率 x1.25 / x1.5 / x1.75 ...（只乘在「加分項目」得分）
-   • 速度額外 +20% / +30% / +40% ...
-5) 遊玩時間越久，整體基礎速度會逐步提升（緊張但可控）
+【限時加成圈】
+• 遊玩 60 秒後會出現「x2 加成圈」
+• 吃到後 3 秒內：加分項目得分 x2
 
-【多物件節奏】
-• 0–20 秒：固定 1 物件（上手；且必為加分）
-• 20–40 秒：1–2 物件
-• 40–60 秒：2–3 物件
-• 60 秒後：3–4 物件 + 更快刷新
-※ 物件「過期」不消失，會換位置/換角色維持活動感
-
-【60 秒後：限時加成圈】
-地圖會出現「x2 加成圈」，吃到後「分數 x2 持續 3 秒」（只影響加分項目得分）
-
-【結束加成】
-每多一格身體 +1 分（以初始長度 1 為基準）
-
-【排行榜規則】
-• 只顯示前 ${TOP_N} 名
-• 只保留近 ${KEEP_DAYS} 天的成績（過期自動剔除）`;
+【節奏】
+• 遊玩越久，整體速度會逐步變快
+• 場上永遠至少有 1 個加分項目`;
 
     openModal({
-      title: "玩法與加減分說明",
-      sub: "緊張但可控：越玩越刺激",
+      title: "玩法（簡要）",
+      sub: "好上手、越玩越刺激",
       text: rule,
       score: currentScoreFinalForUI(),
       showRank: false,
@@ -1640,15 +1585,13 @@ ${prevText}<br/>
   function showStartIntro(){
     openModal({
       title: "準備開始！",
-      sub: "阿鹿鹿文創-貪食鹿(吃鹿粉)",
+      sub: "按開始後倒數 3、2、1",
       text:
-`按「開始」後會倒數 3、2、1 才正式開跑。<br/>
-前 20 秒固定 1 物件讓你上手（且必為加分）；之後物件數量與刷新速度會逐步提升。<br/>
-花媽是彩蛋：會先「閃光 1 秒」預告，吃到 +3 分、身體 +2、1.7 倍加速 3 秒。<br/>
-生氣鹿鹿是地雷：扣分縮短（最低不小於 1），並中斷連吃；且不會在蛇頭 5 格內生成。<br/>
-分數最低維持 1 分（吃到 -3 也不會再更低）。<br/>
-60 秒後會出現「x2 限時加成圈」：吃到後分數 x2 持續 3 秒（只影響加分項目）。<br/>
-排行榜：只保留近 ${KEEP_DAYS} 天的前 ${TOP_N} 名。`,
+`• 加分角色：加分＋變長<br/>
+• 生氣鹿鹿（地雷）：-3 分、縮短 -2、連吃中斷<br/>
+• 分數最低 1 分<br/>
+• 60 秒後：x2 加成圈（3 秒）<br/>
+• 遊玩越久速度越快`,
       score: SCORE_FLOOR,
       showGo: true,
       showRank: false,
@@ -1658,7 +1601,7 @@ ${prevText}<br/>
   }
 
   /***********************
-   * ✅ 倒數開跑
+   * 倒數開跑
    ***********************/
   function startCountdownThenGame(){
     if (running || countdownActive) return;
@@ -1671,7 +1614,6 @@ ${prevText}<br/>
     countdownEndsAt = Date.now() + 1000;
     draw();
 
-    // 先嗶一聲
     sfxBeep(660, 0.06, "square", 0.16);
 
     clearInterval(countdownTimer);
@@ -1689,7 +1631,6 @@ ${prevText}<br/>
       draw();
     }, 1000);
 
-    // 讓倒數時也有動畫更新（不然只有每秒更新一次）
     const anim = () => {
       if (!countdownActive) return;
       draw();
